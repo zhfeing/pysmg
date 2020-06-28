@@ -2,12 +2,11 @@ import os
 import collections
 import numpy as np
 from PIL import Image
-import matplotlib.pyplot as plt
 
 import torch
 from torch.utils import data
 
-from ptsemseg.augmentations import Compose, RandomHorizontallyFlip, RandomRotate
+from ptsemseg.data.transforms import default_transforms
 
 
 class Camvid(data.Dataset):
@@ -18,24 +17,22 @@ class Camvid(data.Dataset):
         is_transform=False,
         img_size=None,
         augmentations=None,
-        img_norm=True,
-        test_mode=False,
+        normalize_mean=[0.485, 0.456, 0.406],
+        normalize_std=[0.229, 0.224, 0.225],
     ):
         self.root = root
         self.split = split
-        self.img_size = [360, 480]
         self.is_transform = is_transform
         self.augmentations = augmentations
-        self.img_norm = img_norm
-        self.test_mode = test_mode
-        self.mean = np.array([104.00699, 116.66877, 122.67892])
+        # self.mean = np.array([104.00699, 116.66877, 122.67892])
         self.n_classes = 12
         self.files = collections.defaultdict(list)
+        self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
+        self.normalize = (normalize_mean, normalize_std)
 
-        if not self.test_mode:
-            for split in ["train", "test", "val"]:
-                file_list = os.listdir(root + "/" + split)
-                self.files[split] = file_list
+        for split in ["train", "test", "val"]:
+            file_list = os.listdir(root + "/" + split)
+            self.files[split] = file_list
 
     def __len__(self):
         return len(self.files[self.split])
@@ -48,7 +45,6 @@ class Camvid(data.Dataset):
         img = Image.open(img_path)
         lbl = Image.open(lbl_path)
 
-        print(np.array(lbl).max())
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
 
@@ -58,21 +54,12 @@ class Camvid(data.Dataset):
         return img, lbl
 
     def transform(self, img, lbl):
-        img = img.resize((self.img_size[0], self.img_size[1]))  # uint8 with RGB mode
-        img = np.array(img)
-        img = img[:, :, ::-1]  # RGB -> BGR
-        img = img.astype(np.float64)
-        img -= self.mean
-        if self.img_norm:
-            # Resize scales images from 0 to 255, thus we need
-            # to divide by 255.0
-            img = img.astype(float) / 255.0
-        # NHWC -> NCHW
-        img = img.transpose(2, 0, 1)
-
-        img = torch.from_numpy(img).float()
-        lbl = np.array(lbl)
-        lbl = torch.from_numpy(lbl).long()
+        img, lbl = default_transforms(
+            img,
+            lbl,
+            normalize=self.normalize,
+            size=self.img_size
+        )
         return img, lbl
 
     def decode_segmap(self, temp, plot=False):
@@ -118,26 +105,3 @@ class Camvid(data.Dataset):
         rgb[:, :, 1] = g / 255.0
         rgb[:, :, 2] = b / 255.0
         return rgb
-
-
-if __name__ == "__main__":
-    local_path = "/home/meetshah1995/datasets/segnet/CamVid"
-    augmentations = Compose([RandomRotate(10), RandomHorizontallyFlip()])
-
-    dst = Camvid(local_path, is_transform=True, augmentations=augmentations)
-    bs = 4
-    trainloader = data.DataLoader(dst, batch_size=bs)
-    for i, data_samples in enumerate(trainloader):
-        imgs, labels = data_samples
-        imgs = imgs.numpy()[:, ::-1, :, :]
-        imgs = np.transpose(imgs, [0, 2, 3, 1])
-        f, axarr = plt.subplots(bs, 2)
-        for j in range(bs):
-            axarr[j][0].imshow(imgs[j])
-            axarr[j][1].imshow(dst.decode_segmap(labels.numpy()[j]))
-        plt.show()
-        a = input()
-        if a == "ex":
-            break
-        else:
-            plt.close()

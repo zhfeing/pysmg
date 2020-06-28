@@ -10,15 +10,40 @@
 #     img_cols: 448
 #     path: /home/zhfeing/datasets/voc/VOC2012/
 #     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+#     normalize_mean: [0.485, 0.456, 0.406]
+#     normalize_std: [0.229, 0.224, 0.225]
 
-# camvid
+# # camvid
+# data:
+#     dataset: camvid
+#     train_split: train
+#     val_split: val
+#     img_rows: same
+#     img_cols: same
+#     path: /home/zhfeing/datasets/camvid/CamVid11
+
+# # cityscapes
+# data:
+#     dataset: cityscapes
+#     train_split: train
+#     val_split: val
+#     img_rows: 448
+#     img_cols: 448
+#     path: /home/zhfeing/datasets/cityscape
+
+# training:
+#     augmentations:
+#         rotate: 10
+#         hflip: 0.5
+
+# nyuv2
 data:
-    dataset: camvid
+    dataset: nyuv2
     train_split: train
     val_split: val
     img_rows: 448
     img_cols: 448
-    path: /home/zhfeing/datasets/camvid/CamVid11
+    path: /home/zhfeing/datasets/nyuv2
 
 training:
     augmentations:

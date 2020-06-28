@@ -2,12 +2,12 @@ import os
 import collections
 import torch
 import numpy as np
-import scipy.misc as m
+from PIL import Image
 
 from torch.utils import data
 
 from ptsemseg.utils import recursive_glob
-from ptsemseg.augmentations import Compose, RandomHorizontallyFlip, RandomRotate, Scale
+from ptsemseg.data.transforms import default_transforms
 
 
 class NYUv2(data.Dataset):
@@ -30,17 +30,15 @@ class NYUv2(data.Dataset):
         is_transform=False,
         img_size=(480, 640),
         augmentations=None,
-        img_norm=True,
-        test_mode=False,
+        normalize_mean=[0.485, 0.456, 0.406],
+        normalize_std=[0.229, 0.224, 0.225],
     ):
         self.root = root
         self.is_transform = is_transform
         self.n_classes = 14
         self.augmentations = augmentations
-        self.img_norm = img_norm
-        self.test_mode = test_mode
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
-        self.mean = np.array([104.00699, 116.66877, 122.67892])
+        self.normalize = (normalize_mean, normalize_std)
         self.files = collections.defaultdict(list)
         self.cmap = self.color_map(normalized=False)
 
@@ -61,13 +59,10 @@ class NYUv2(data.Dataset):
             self.root, self.split + "_annot", "new_nyu_class13_" + img_number + ".png"
         )
 
-        img = m.imread(img_path)
-        img = np.array(img, dtype=np.uint8)
+        img = Image.open(img_path)
+        lbl = Image.open(lbl_path)
 
-        lbl = m.imread(lbl_path)
-        lbl = np.array(lbl, dtype=np.uint8)
-
-        if not (len(img.shape) == 3 and len(lbl.shape) == 2):
+        if not (len(img.size) == 3 and len(lbl.size) == 2):
             return self.__getitem__(np.random.randint(0, self.__len__()))
 
         if self.augmentations is not None:
@@ -79,25 +74,9 @@ class NYUv2(data.Dataset):
         return img, lbl
 
     def transform(self, img, lbl):
-        img = m.imresize(img, (self.img_size[0], self.img_size[1]))  # uint8 with RGB mode
-        img = img[:, :, ::-1]  # RGB -> BGR
-        img = img.astype(np.float64)
-        img -= self.mean
-        if self.img_norm:
-            # Resize scales images from 0 to 255, thus we need
-            # to divide by 255.0
-            img = img.astype(float) / 255.0
-        # NHWC -> NCHW
-        img = img.transpose(2, 0, 1)
-
-        classes = np.unique(lbl)
-        lbl = lbl.astype(float)
-        lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), "nearest", mode="F")
-        lbl = lbl.astype(int)
+        img, lbl = default_transforms(img, lbl, self.normalize, self.img_size)
+        classes = torch.unique(lbl)
         assert np.all(classes == np.unique(lbl))
-
-        img = torch.from_numpy(img).float()
-        lbl = torch.from_numpy(lbl).long()
         return img, lbl
 
     def color_map(self, N=256, normalized=False):
@@ -138,28 +117,3 @@ class NYUv2(data.Dataset):
         rgb[:, :, 1] = g / 255.0
         rgb[:, :, 2] = b / 255.0
         return rgb
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    augmentations = Compose([Scale(512), RandomRotate(10), RandomHorizontallyFlip()])
-
-    local_path = "/home/meet/datasets/NYUv2/"
-    dst = NYUv2(local_path, is_transform=True, augmentations=augmentations)
-    bs = 4
-    trainloader = data.DataLoader(dst, batch_size=bs, num_workers=0)
-    for i, datas in enumerate(trainloader):
-        imgs, labels = datas
-        imgs = imgs.numpy()[:, ::-1, :, :]
-        imgs = np.transpose(imgs, [0, 2, 3, 1])
-        f, axarr = plt.subplots(bs, 2)
-        for j in range(bs):
-            axarr[j][0].imshow(imgs[j])
-            axarr[j][1].imshow(dst.decode_segmap(labels.numpy()[j]))
-        plt.show()
-        a = input()
-        if a == "ex":
-            break
-        else:
-            plt.close()

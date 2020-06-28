@@ -1,12 +1,13 @@
 import os
-import torch
 import numpy as np
-import scipy.misc as m
+from PIL import Image
+import imageio
 
+import torch
 from torch.utils import data
 
 from ptsemseg.utils import recursive_glob
-from ptsemseg.augmentations import Compose, RandomHorizontallyFlip, RandomRotate, Scale
+from ptsemseg.data.transforms import default_transforms
 
 
 class Cityscapes(data.Dataset):
@@ -45,10 +46,10 @@ class Cityscapes(data.Dataset):
 
     label_colours = dict(zip(range(19), colors))
 
-    mean_rgb = {
-        "pascal": [103.939, 116.779, 123.68],
-        "cityscapes": [0.0, 0.0, 0.0],
-    }  # pascal mean for PSPNet and ICNet pre-trained model
+    # mean_rgb = {
+    #     "pascal": [103.939, 116.779, 123.68],
+    #     "cityscapes": [0.0, 0.0, 0.0],
+    # }  # pascal mean for PSPNet and ICNet pre-trained model
 
     def __init__(
         self,
@@ -59,7 +60,8 @@ class Cityscapes(data.Dataset):
         augmentations=None,
         img_norm=True,
         version="cityscapes",
-        test_mode=False,
+        normalize_mean=[0.485, 0.456, 0.406],
+        normalize_std=[0.229, 0.224, 0.225],
     ):
         """__init__
 
@@ -76,7 +78,8 @@ class Cityscapes(data.Dataset):
         self.img_norm = img_norm
         self.n_classes = 19
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
-        self.mean = np.array(self.mean_rgb[version])
+        self.normalize = (normalize_mean, normalize_std)
+        # self.mean = np.array(self.mean_rgb[version])
         self.files = {}
 
         self.images_base = os.path.join(self.root, "leftImg8bit", self.split)
@@ -153,11 +156,10 @@ class Cityscapes(data.Dataset):
             os.path.basename(img_path)[:-15] + "gtFine_labelIds.png",
         )
 
-        img = m.imread(img_path)
-        img = np.array(img, dtype=np.uint8)
-
-        lbl = m.imread(lbl_path)
-        lbl = self.encode_segmap(np.array(lbl, dtype=np.uint8))
+        img = Image.open(img_path)
+        lbl = imageio.imread(lbl_path)
+        lbl = self.encode_segmap(lbl)
+        lbl = Image.fromarray(lbl, mode="L")
 
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
@@ -168,37 +170,15 @@ class Cityscapes(data.Dataset):
         return img, lbl
 
     def transform(self, img, lbl):
-        """transform
+        img, lbl = default_transforms(img, lbl, self.normalize, self.img_size)
 
-        :param img:
-        :param lbl:
-        """
-        img = m.imresize(img, (self.img_size[0], self.img_size[1]))  # uint8 with RGB mode
-        img = img[:, :, ::-1]  # RGB -> BGR
-        img = img.astype(np.float64)
-        img -= self.mean
-        if self.img_norm:
-            # Resize scales images from 0 to 255, thus we need
-            # to divide by 255.0
-            img = img.astype(float) / 255.0
-        # NHWC -> NCHW
-        img = img.transpose(2, 0, 1)
+        classes = torch.unique(lbl)
 
-        classes = np.unique(lbl)
-        lbl = lbl.astype(float)
-        lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), "nearest", mode="F")
-        lbl = lbl.astype(int)
+        # if not torch.all(classes == torch.unique(lbl)):
+        #     print("WARN: resizing labels yielded fewer classes")
 
-        if not np.all(classes == np.unique(lbl)):
-            print("WARN: resizing labels yielded fewer classes")
-
-        if not np.all(np.unique(lbl[lbl != self.ignore_index]) < self.n_classes):
-            print("after det", classes, np.unique(lbl))
-            raise ValueError("Segmentation map contained invalid class values")
-
-        img = torch.from_numpy(img).float()
-        lbl = torch.from_numpy(lbl).long()
-
+        if not torch.all(torch.unique(lbl[lbl != self.ignore_index]) < self.n_classes):
+            raise ValueError("Segmentation map contained invalid class values, leagel: {}, illegal: {}".format(classes, torch.unique(lbl)))
         return img, lbl
 
     def decode_segmap(self, temp):
@@ -223,31 +203,3 @@ class Cityscapes(data.Dataset):
         for _validc in self.valid_classes:
             mask[mask == _validc] = self.class_map[_validc]
         return mask
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    augmentations = Compose([Scale(2048), RandomRotate(10), RandomHorizontallyFlip(0.5)])
-
-    local_path = "/datasets01/cityscapes/112817/"
-    dst = Cityscapes(local_path, is_transform=True, augmentations=augmentations)
-    bs = 4
-    trainloader = data.DataLoader(dst, batch_size=bs, num_workers=0)
-    for i, data_samples in enumerate(trainloader):
-        imgs, labels = data_samples
-        import pdb
-
-        pdb.set_trace()
-        imgs = imgs.numpy()[:, ::-1, :, :]
-        imgs = np.transpose(imgs, [0, 2, 3, 1])
-        f, axarr = plt.subplots(bs, 2)
-        for j in range(bs):
-            axarr[j][0].imshow(imgs[j])
-            axarr[j][1].imshow(dst.decode_segmap(labels.numpy()[j]))
-        plt.show()
-        a = input()
-        if a == "ex":
-            break
-        else:
-            plt.close()

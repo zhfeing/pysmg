@@ -15,6 +15,7 @@ from torch.utils import data
 from torchvision import transforms
 
 from ptsemseg.utils import toimage
+from ptsemseg.data.transforms import default_transforms
 
 
 class PascalVOC(data.Dataset):
@@ -49,37 +50,27 @@ class PascalVOC(data.Dataset):
         sbd_path=None,
         split="train_aug",
         is_transform=False,
-        img_size=512,
+        img_size=None,
         augmentations=None,
-        img_norm=True,
-        test_mode=False,
+        normalize_mean=[0.485, 0.456, 0.406],
+        normalize_std=[0.229, 0.224, 0.225],
     ):
         self.root = root
         self.sbd_path = sbd_path
         self.split = split
         self.is_transform = is_transform
         self.augmentations = augmentations
-        self.img_norm = img_norm
-        self.test_mode = test_mode
         self.n_classes = 21
-        self.mean = np.array([104.00699, 116.66877, 122.67892])
         self.files = collections.defaultdict(list)
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
+        self.normalize = (normalize_mean, normalize_std)
 
-        if not self.test_mode:
-            for split in ["train", "val", "trainval"]:
-                path = pjoin(self.root, "ImageSets/Segmentation", split + ".txt")
-                file_list = tuple(open(path, "r"))
-                file_list = [id_.rstrip() for id_ in file_list]
-                self.files[split] = file_list
-            self.setup_annotations()
-
-        self.tf = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-            ]
-        )
+        for split in ["train", "val", "trainval"]:
+            path = pjoin(self.root, "ImageSets/Segmentation", split + ".txt")
+            file_list = tuple(open(path, "r"))
+            file_list = [id_.rstrip() for id_ in file_list]
+            self.files[split] = file_list
+        self.setup_annotations()
 
     def __len__(self):
         return len(self.files[self.split])
@@ -97,13 +88,12 @@ class PascalVOC(data.Dataset):
         return im, lbl
 
     def transform(self, img, lbl):
-        if self.img_size == ("same", "same"):
-            pass
-        else:
-            img = img.resize((self.img_size[0], self.img_size[1]))  # uint8 with RGB mode
-            lbl = lbl.resize((self.img_size[0], self.img_size[1]))
-        img = self.tf(img)
-        lbl = torch.from_numpy(np.array(lbl)).long()
+        img, lbl = default_transforms(
+            img,
+            lbl,
+            normalize=self.normalize,
+            size=self.img_size
+        )
         lbl[lbl == 255] = 0
         return img, lbl
 
@@ -229,13 +219,3 @@ class PascalVOC(data.Dataset):
                 imageio.imsave(pjoin(target_path, fname), lbl)
 
         assert expected == 9733, "unexpected dataset sizes"
-
-
-if __name__ == '__main__':
-    import ptsemseg.augmentations as aug
-    local_path = '/home/meetshah1995/datasets/VOCdevkit/VOC2012/'
-    bs = 4
-    augs = aug.Compose([aug.RandomRotate(10), aug.RandomHorizontallyFlip()])
-    dst = PascalVOC(root=local_path, is_transform=True, augmentations=augs)
-    trainloader = data.DataLoader(dst, batch_size=bs)
-

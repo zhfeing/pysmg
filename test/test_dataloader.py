@@ -41,11 +41,13 @@ def get_data(cfg):
     )
 
     print(len(t_dataset), len(v_dataset))
-    print(t_dataset[0])
+    piece = t_dataset[300]
+    assert piece[0].shape[1:3] == piece[1].shape[0:2]
 
-    mask = v_dataset[100][1].numpy()
-    plt.imshow(mask)
-    plt.savefig("test.jpg")
+    mask = piece[1].numpy()
+    xx = t_dataset.decode_segmap(mask)
+    plt.imshow(xx)
+    plt.savefig("test/test.jpg")
 
     # n_classes = t_loader.n_classes
     # trainloader = data.DataLoader(
