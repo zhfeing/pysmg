@@ -43,9 +43,9 @@ def get_data(cfg):
     print(len(t_dataset), len(v_dataset))
     print(t_dataset[0])
 
-    mask = v_dataset[100][1].numpy()
-    plt.imshow(mask)
-    plt.savefig("test.jpg")
+    mask = t_dataset[512][1].numpy()
+    print(mask.shape)
+    # plt.s("test.jpg")
 
     # n_classes = t_loader.n_classes
     # trainloader = data.DataLoader(

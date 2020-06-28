@@ -1,26 +1,27 @@
 # model:
 #     arch: fcn8s
 
-# # pascal
+# pascal
+data:
+    dataset: pascal
+    train_split: train_aug
+    val_split: val
+    img_rows: same
+    img_cols: same
+    path: /home/zhfeing/datasets/voc/VOC2012/
+    sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+
+# # camvid
 # data:
-#     dataset: pascal
-#     train_split: train_aug
+#     dataset: camvid
+#     train_split: train
 #     val_split: val
 #     img_rows: 448
 #     img_cols: 448
-#     path: /home/zhfeing/datasets/voc/VOC2012/
-#     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
-
-# camvid
-data:
-    dataset: camvid
-    train_split: train
-    val_split: val
-    img_rows: 448
-    img_cols: 448
-    path: /home/zhfeing/datasets/camvid/CamVid11
+#     path: /home/zhfeing/datasets/camvid/CamVid11
 
 training:
+    aa:
     augmentations:
         rotate: 10
         hflip: 0.5
