@@ -37,10 +37,11 @@
 data:
     dataset: nyuv2
     train_split: train
-    val_split: val
+    val_split: test
     img_rows: 448
     img_cols: 448
-    path: /home/zhfeing/datasets/nyuv2
+    # path: /home/zhfeing/datasets/nyuv2
+    path: F:/dataset/NYUv2
 
 training:
     augmentations:

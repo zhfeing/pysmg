@@ -42,11 +42,10 @@ class NYUv2(data.Dataset):
         self.files = collections.defaultdict(list)
         self.cmap = self.color_map(normalized=False)
 
-        split_map = {"training": "train", "val": "test"}
-        self.split = split_map[split]
+        self.split = split
 
         for split in ["train", "test"]:
-            file_list = recursive_glob(rootdir=self.root + split + "/", suffix="png")
+            file_list = recursive_glob(rootdir=self.root + "/{}/".format(split), suffix="png")
             self.files[split] = file_list
 
     def __len__(self):
