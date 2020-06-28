@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from ptsemseg.models import get_model
 from ptsemseg.loss import get_loss_function
-from ptsemseg.loader import get_loader
+from ptsemseg.data import get_dataset
 from ptsemseg.utils import get_logger
 from ptsemseg.metrics import runningScore, averageMeter
 from ptsemseg.augmentations import get_composed_augmentations
@@ -38,7 +38,7 @@ def train(cfg, writer, logger):
     data_aug = get_composed_augmentations(augmentations)
 
     # Setup Dataloader
-    data_loader = get_loader(cfg["data"]["dataset"])
+    data_loader = get_dataset(cfg["data"]["dataset"])
     data_path = cfg["data"]["path"]
 
     t_loader = data_loader(

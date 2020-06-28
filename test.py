@@ -6,7 +6,7 @@ import scipy.misc as misc
 
 
 from ptsemseg.models import get_model
-from ptsemseg.loader import get_loader
+from ptsemseg.data import get_dataset
 from ptsemseg.utils import convert_state_dict
 
 try:
@@ -29,7 +29,7 @@ def test(args):
     print("Read Input Image from : {}".format(args.img_path))
     img = misc.imread(args.img_path)
 
-    data_loader = get_loader(args.dataset)
+    data_loader = get_dataset(args.dataset)
     loader = data_loader(root=None, is_transform=True, img_norm=args.img_norm, test_mode=True)
     n_classes = loader.n_classes
 

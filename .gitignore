@@ -9,8 +9,6 @@ __pycache__/
 current_train.py
 video_test*.py
 *.swp
-data
-ckpt
 
 # C extensions
 *.so
@@ -100,3 +98,4 @@ ENV/
 
 # Rope project settings
 .ropeproject
+.vscode

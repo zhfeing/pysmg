@@ -1,21 +1,23 @@
 import os
 from os.path import join as pjoin
 import collections
-import json
-import torch
-import numpy as np
-import scipy.misc as m
-import scipy.io as io
-import matplotlib.pyplot as plt
 import glob
 
+import numpy as np
+import imageio
+import scipy.io as io
+import matplotlib.pyplot as plt
 from PIL import Image
 from tqdm import tqdm
+
+import torch
 from torch.utils import data
 from torchvision import transforms
 
+from ptsemseg.utils import toimage
 
-class pascalVOCLoader(data.Dataset):
+
+class PascalVOC(data.Dataset):
     """Data loader for the Pascal VOC semantic segmentation dataset.
 
     Annotations from both the original VOC data (which consist of RGB images
@@ -216,38 +218,24 @@ class pascalVOCLoader(data.Dataset):
                 lbl_path = pjoin(sbd_path, "dataset/cls", ii + ".mat")
                 data = io.loadmat(lbl_path)
                 lbl = data["GTcls"][0]["Segmentation"][0].astype(np.int32)
-                lbl = m.toimage(lbl, high=lbl.max(), low=lbl.min())
-                m.imsave(pjoin(target_path, ii + ".png"), lbl)
+                lbl = toimage(lbl, high=lbl.max(), low=lbl.min())
+                imageio.imsave(pjoin(target_path, ii + ".png"), lbl)
 
             for ii in tqdm(self.files["trainval"]):
                 fname = ii + ".png"
                 lbl_path = pjoin(self.root, "SegmentationClass", fname)
-                lbl = self.encode_segmap(m.imread(lbl_path))
-                lbl = m.toimage(lbl, high=lbl.max(), low=lbl.min())
-                m.imsave(pjoin(target_path, fname), lbl)
+                lbl = self.encode_segmap(imageio.imread(lbl_path))
+                lbl = toimage(lbl, high=lbl.max(), low=lbl.min())
+                imageio.imsave(pjoin(target_path, fname), lbl)
 
         assert expected == 9733, "unexpected dataset sizes"
 
 
-# Leave code for debugging purposes
-# import ptsemseg.augmentations as aug
-# if __name__ == '__main__':
-# # local_path = '/home/meetshah1995/datasets/VOCdevkit/VOC2012/'
-# bs = 4
-# augs = aug.Compose([aug.RandomRotate(10), aug.RandomHorizontallyFlip()])
-# dst = pascalVOCLoader(root=local_path, is_transform=True, augmentations=augs)
-# trainloader = data.DataLoader(dst, batch_size=bs)
-# for i, data in enumerate(trainloader):
-# imgs, labels = data
-# imgs = imgs.numpy()[:, ::-1, :, :]
-# imgs = np.transpose(imgs, [0,2,3,1])
-# f, axarr = plt.subplots(bs, 2)
-# for j in range(bs):
-# axarr[j][0].imshow(imgs[j])
-# axarr[j][1].imshow(dst.decode_segmap(labels.numpy()[j]))
-# plt.show()
-# a = raw_input()
-# if a == 'ex':
-# break
-# else:
-# plt.close()
+if __name__ == '__main__':
+    import ptsemseg.augmentations as aug
+    local_path = '/home/meetshah1995/datasets/VOCdevkit/VOC2012/'
+    bs = 4
+    augs = aug.Compose([aug.RandomRotate(10), aug.RandomHorizontallyFlip()])
+    dst = PascalVOC(root=local_path, is_transform=True, augmentations=augs)
+    trainloader = data.DataLoader(dst, batch_size=bs)
+

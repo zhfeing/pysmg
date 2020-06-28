@@ -8,8 +8,8 @@ from torch.utils import data
 from ptsemseg.utils import recursive_glob
 
 
-class MITSceneParsingBenchmarkLoader(data.Dataset):
-    """MITSceneParsingBenchmarkLoader
+class MITSceneParsingBenchmark(data.Dataset):
+    """MITSceneParsingBenchmark
 
     http://sceneparsing.csail.mit.edu/
 
@@ -17,7 +17,7 @@ class MITSceneParsingBenchmarkLoader(data.Dataset):
     http://data.csail.mit.edu/places/ADEchallenge/ADEChallengeData2016.zip
 
     NOTE: this loader is not designed to work with the original ADE20k dataset;
-    for that you will need the ADE20kLoader
+    for that you will need the ADE20K
 
     This class can also be extended to load data for places challenge:
     https://github.com/CSAILVision/placeschallenge/tree/master/sceneparsing

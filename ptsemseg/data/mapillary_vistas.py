@@ -10,7 +10,7 @@ from ptsemseg.utils import recursive_glob
 from ptsemseg.augmentations import Compose, RandomHorizontallyFlip, RandomRotate
 
 
-class mapillaryVistasLoader(data.Dataset):
+class MapillaryVistas(data.Dataset):
     def __init__(
         self,
         root,
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     augment = Compose([RandomHorizontallyFlip(), RandomRotate(6)])
 
     local_path = "/private/home/meetshah/datasets/seg/vistas/"
-    dst = mapillaryVistasLoader(
+    dst = MapillaryVistas(
         local_path, img_size=(512, 1024), is_transform=True, augmentations=augment
     )
     bs = 8

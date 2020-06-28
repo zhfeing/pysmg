@@ -478,7 +478,7 @@ if __name__ == "__main__":
     cd = 0
     import os
     import scipy.misc as m
-    from ptsemseg.loader.cityscapes_loader import cityscapesLoader as cl
+    from ptsemseg.data.cityscapes_loader import Cityscapes as cl
 
     ic = icnet(version="cityscapes", is_batchnorm=False)
 

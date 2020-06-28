@@ -8,7 +8,7 @@ from torch.utils import data
 
 
 from ptsemseg.models import get_model
-from ptsemseg.loader import get_loader
+from ptsemseg.data import get_dataset
 from ptsemseg.metrics import runningScore
 from ptsemseg.utils import convert_state_dict
 
@@ -20,7 +20,7 @@ def validate(cfg, args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Setup Dataloader
-    data_loader = get_loader(cfg["data"]["dataset"])
+    data_loader = get_dataset(cfg["data"]["dataset"])
     data_path = cfg["data"]["path"]
 
     loader = data_loader(

@@ -1,15 +1,16 @@
 import os
 import collections
-import torch
 import numpy as np
-import scipy.misc as m
+from PIL import Image
 import matplotlib.pyplot as plt
 
+import torch
 from torch.utils import data
+
 from ptsemseg.augmentations import Compose, RandomHorizontallyFlip, RandomRotate
 
 
-class camvidLoader(data.Dataset):
+class Camvid(data.Dataset):
     def __init__(
         self,
         root,
@@ -44,12 +45,10 @@ class camvidLoader(data.Dataset):
         img_path = self.root + "/" + self.split + "/" + img_name
         lbl_path = self.root + "/" + self.split + "annot/" + img_name
 
-        img = m.imread(img_path)
-        img = np.array(img, dtype=np.uint8)
+        img = Image.open(img_path)
+        lbl = Image.open(lbl_path)
 
-        lbl = m.imread(lbl_path)
-        lbl = np.array(lbl, dtype=np.int8)
-
+        print(np.array(lbl).max())
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
 
@@ -59,7 +58,8 @@ class camvidLoader(data.Dataset):
         return img, lbl
 
     def transform(self, img, lbl):
-        img = m.imresize(img, (self.img_size[0], self.img_size[1]))  # uint8 with RGB mode
+        img = img.resize((self.img_size[0], self.img_size[1]))  # uint8 with RGB mode
+        img = np.array(img)
         img = img[:, :, ::-1]  # RGB -> BGR
         img = img.astype(np.float64)
         img -= self.mean
@@ -71,6 +71,7 @@ class camvidLoader(data.Dataset):
         img = img.transpose(2, 0, 1)
 
         img = torch.from_numpy(img).float()
+        lbl = np.array(lbl)
         lbl = torch.from_numpy(lbl).long()
         return img, lbl
 
@@ -123,7 +124,7 @@ if __name__ == "__main__":
     local_path = "/home/meetshah1995/datasets/segnet/CamVid"
     augmentations = Compose([RandomRotate(10), RandomHorizontallyFlip()])
 
-    dst = camvidLoader(local_path, is_transform=True, augmentations=augmentations)
+    dst = Camvid(local_path, is_transform=True, augmentations=augmentations)
     bs = 4
     trainloader = data.DataLoader(dst, batch_size=bs)
     for i, data_samples in enumerate(trainloader):

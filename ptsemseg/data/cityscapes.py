@@ -9,8 +9,8 @@ from ptsemseg.utils import recursive_glob
 from ptsemseg.augmentations import Compose, RandomHorizontallyFlip, RandomRotate, Scale
 
 
-class cityscapesLoader(data.Dataset):
-    """cityscapesLoader
+class Cityscapes(data.Dataset):
+    """Cityscapes
 
     https://www.cityscapes-dataset.com
 
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     augmentations = Compose([Scale(2048), RandomRotate(10), RandomHorizontallyFlip(0.5)])
 
     local_path = "/datasets01/cityscapes/112817/"
-    dst = cityscapesLoader(local_path, is_transform=True, augmentations=augmentations)
+    dst = Cityscapes(local_path, is_transform=True, augmentations=augmentations)
     bs = 4
     trainloader = data.DataLoader(dst, batch_size=bs, num_workers=0)
     for i, data_samples in enumerate(trainloader):
