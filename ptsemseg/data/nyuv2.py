@@ -61,7 +61,7 @@ class NYUv2(data.Dataset):
         img = Image.open(img_path)
         lbl = Image.open(lbl_path)
 
-        if not (len(img.size) == 3 and len(lbl.size) == 2):
+        if not (img.mode == "RGB" and lbl.mode == "L"):
             return self.__getitem__(np.random.randint(0, self.__len__()))
 
         if self.augmentations is not None:
@@ -75,7 +75,7 @@ class NYUv2(data.Dataset):
     def transform(self, img, lbl):
         img, lbl = default_transforms(img, lbl, self.normalize, self.img_size)
         classes = torch.unique(lbl)
-        assert np.all(classes == np.unique(lbl))
+        assert torch.all(classes == torch.unique(lbl))
         return img, lbl
 
     def color_map(self, N=256, normalized=False):
