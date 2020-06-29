@@ -6,6 +6,9 @@ import logging
 import datetime
 import numpy as np
 from PIL import Image
+import random
+
+import torch
 
 from collections import OrderedDict
 
@@ -242,3 +245,11 @@ def toimage(arr, high=255, low=0, cmin=None, cmax=None, pal=None,
     # Here we know data and mode is correct
     image = Image.frombytes(mode, shape, strdata)
     return image
+
+
+def make_deterministic(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False

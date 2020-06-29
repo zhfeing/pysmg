@@ -4,7 +4,10 @@
 import numpy as np
 
 
-class runningScore(object):
+np.seterr(divide='ignore', invalid='ignore')
+
+
+class RunningScore(object):
     def __init__(self, n_classes):
         self.n_classes = n_classes
         self.confusion_matrix = np.zeros((n_classes, n_classes))
@@ -51,7 +54,7 @@ class runningScore(object):
         self.confusion_matrix = np.zeros((self.n_classes, self.n_classes))
 
 
-class averageMeter(object):
+class AverageMeter(object):
     """Computes and stores the average and current value"""
 
     def __init__(self):

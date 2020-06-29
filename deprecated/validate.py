@@ -9,7 +9,7 @@ from torch.utils import data
 
 from ptsemseg.models import get_model
 from ptsemseg.data import get_dataset
-from ptsemseg.metrics import runningScore
+from ptsemseg.metrics import RunningScore
 from ptsemseg.utils import convert_state_dict
 
 torch.backends.cudnn.benchmark = True
@@ -33,7 +33,7 @@ def validate(cfg, args):
     n_classes = loader.n_classes
 
     valloader = data.DataLoader(loader, batch_size=cfg["training"]["batch_size"], num_workers=8)
-    running_metrics = runningScore(n_classes)
+    running_metrics = RunningScore(n_classes)
 
     # Setup Model
 

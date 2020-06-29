@@ -1,25 +1,25 @@
-# # pascal
-# data:
-#     dataset: pascal
-#     train_split: train_aug
-#     val_split: val
-#     img_rows: same
-#     img_cols: same
-#     path: /home/zhfeing/datasets/voc/VOC2012/
-#     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
-
-# camvid
+# pascal
 data:
-    dataset: camvid
-    train_split: train
+    dataset: pascal
+    train_split: train_aug
     val_split: val
     img_rows: 448
     img_cols: 448
-
     path: /home/zhfeing/datasets/voc/VOC2012/
     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
-    normalize_mean: [0.485, 0.456, 0.406]
-    normalize_std: [0.229, 0.224, 0.225]
+
+# # camvid
+# data:
+#     dataset: camvid
+#     train_split: train
+#     val_split: val
+#     img_rows: 448
+#     img_cols: 448
+
+#     path: /home/zhfeing/datasets/voc/VOC2012/
+#     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+#     normalize_mean: [0.485, 0.456, 0.406]
+#     normalize_std: [0.229, 0.224, 0.225]
 
 # # cityscapes
 # data:
@@ -52,18 +52,37 @@ training:
     augmentations:
         rotate: 10
         hflip: 0.5
-    batch_size: 32
+    batch_size: 64
     n_workers: 0
     seed: 1
+    optimizer:
+        name: 'sgd'
+        lr: 1.0e-3
+        weight_decay: 5.0e-4
+        momentum: 0.99
+    lr_schedule: 
+        name: constant_lr
+        # name: multi_step
+        # milestones: [900, 5000]
+        # warmup_iters: 100
+        # warmup_mode: linear
+        # warmup_factor: 0.2
+    loss:
+        name: cross_entropy
+    resume:
+    print_interval: 2
+    train_iters: 1000
+    val_interval: 10
+
 
 validation:
-    batch_size: 16
-    n_workers: 32
+    batch_size: 32
+    n_workers: 16
 
 # unet
 model:
     arch: unet
-    encoder_name: resnet34
+    encoder_name: resnet18
     encoder_depth: 5
     encoder_weights: imagenet
     decoder_use_batchnorm: True
