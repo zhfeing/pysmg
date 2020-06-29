@@ -1,6 +1,3 @@
-# model:
-#     arch: fcn8s
-
 # # pascal
 # data:
 #     dataset: pascal
@@ -11,18 +8,18 @@
 #     path: /home/zhfeing/datasets/voc/VOC2012/
 #     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
 
-# # camvid
-# data:
-#     dataset: camvid
-#     train_split: train
-#     val_split: val
-#     img_rows: 448
-#     img_cols: 448
+# camvid
+data:
+    dataset: camvid
+    train_split: train
+    val_split: val
+    img_rows: 448
+    img_cols: 448
 
-#     path: /home/zhfeing/datasets/voc/VOC2012/
-#     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
-#     normalize_mean: [0.485, 0.456, 0.406]
-#     normalize_std: [0.229, 0.224, 0.225]
+    path: /home/zhfeing/datasets/voc/VOC2012/
+    sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
 
 # # cityscapes
 # data:
@@ -42,17 +39,36 @@
 #     img_cols: 448
 #     path: /home/zhfeing/datasets/nyuv2
 
-# sunrgbd
-data:
-    dataset: sunrgbd
-    train_split: train
-    val_split: test
-    img_rows: 448
-    img_cols: 448
-    path: /home/zhfeing/datasets/sunrgbd
+# # sunrgbd
+# data:
+#     dataset: sunrgbd
+#     train_split: train
+#     val_split: test
+#     img_rows: 448
+#     img_cols: 448
+#     path: /home/zhfeing/datasets/sunrgbd
 
 training:
     augmentations:
         rotate: 10
         hflip: 0.5
+    batch_size: 32
+    n_workers: 0
+    seed: 1
 
+validation:
+    batch_size: 16
+    n_workers: 32
+
+# unet
+model:
+    arch: unet
+    encoder_name: resnet34
+    encoder_depth: 5
+    encoder_weights: imagenet
+    decoder_use_batchnorm: True
+    decoder_channels: [256, 128, 64, 32, 16]
+    decoder_attention_type:
+    in_channels: 3
+    activation:
+    aux_params:
