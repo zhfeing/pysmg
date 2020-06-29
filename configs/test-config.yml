@@ -2,7 +2,7 @@
 data:
     dataset: pascal
     train_split: train_aug
-    val_split: val
+    val_split: train_aug_val
     img_rows: 448
     img_cols: 448
     path: /home/zhfeing/datasets/voc/VOC2012/
@@ -53,7 +53,7 @@ training:
         rotate: 10
         hflip: 0.5
     batch_size: 64
-    n_workers: 0
+    n_workers: 32
     seed: 1
     optimizer:
         name: 'sgd'
@@ -77,7 +77,7 @@ training:
 
 validation:
     batch_size: 32
-    n_workers: 16
+    n_workers: 8
 
 # unet
 model:

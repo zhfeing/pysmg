@@ -208,14 +208,16 @@ class PascalVOC(data.Dataset):
                 lbl_path = pjoin(sbd_path, "dataset/cls", ii + ".mat")
                 data = io.loadmat(lbl_path)
                 lbl = data["GTcls"][0]["Segmentation"][0].astype(np.int32)
-                lbl = toimage(lbl, high=lbl.max(), low=lbl.min())
-                imageio.imsave(pjoin(target_path, ii + ".png"), lbl)
+                lbl = Image.fromarray(lbl)
+                lbl.save(pjoin(target_path, ii + ".png"))
 
             for ii in tqdm(self.files["trainval"]):
                 fname = ii + ".png"
                 lbl_path = pjoin(self.root, "SegmentationClass", fname)
-                lbl = self.encode_segmap(imageio.imread(lbl_path))
-                lbl = toimage(lbl, high=lbl.max(), low=lbl.min())
-                imageio.imsave(pjoin(target_path, fname), lbl)
+                lbl = Image.open(lbl_path)
+                lbl = np.array(lbl)
+                lbl[lbl == 255] = 0
+                lbl = Image.fromarray(lbl)
+                lbl.save(pjoin(target_path, fname))
 
         assert expected == 9733, "unexpected dataset sizes"
