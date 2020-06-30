@@ -97,56 +97,6 @@ class PascalVOC(data.Dataset):
         lbl[lbl == 255] = 0
         return img, lbl
 
-    def get_pascal_labels(self):
-        """Load the mapping that associates pascal classes with label colors
-
-        Returns:
-            np.ndarray with dimensions (21, 3)
-        """
-        return np.asarray(
-            [
-                [0, 0, 0],
-                [128, 0, 0],
-                [0, 128, 0],
-                [128, 128, 0],
-                [0, 0, 128],
-                [128, 0, 128],
-                [0, 128, 128],
-                [128, 128, 128],
-                [64, 0, 0],
-                [192, 0, 0],
-                [64, 128, 0],
-                [192, 128, 0],
-                [64, 0, 128],
-                [192, 0, 128],
-                [64, 128, 128],
-                [192, 128, 128],
-                [0, 64, 0],
-                [128, 64, 0],
-                [0, 192, 0],
-                [128, 192, 0],
-                [0, 64, 128],
-            ]
-        )
-
-    def encode_segmap(self, mask):
-        """Encode segmentation label images as pascal classes
-
-        Args:
-            mask (np.ndarray): raw segmentation label image of dimension
-              (M, N, 3), in which the Pascal classes are encoded as colours.
-
-        Returns:
-            (np.ndarray): class map with dimensions (M,N), where the value at
-            a given location is the integer denoting the class index.
-        """
-        mask = mask.astype(int)
-        label_mask = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.int16)
-        for ii, label in enumerate(self.get_pascal_labels()):
-            label_mask[np.where(np.all(mask == label, axis=-1))[:2]] = ii
-        label_mask = label_mask.astype(int)
-        return label_mask
-
     def decode_segmap(self, label_mask, plot=False):
         """Decode segmentation class labels into a color image
 
@@ -187,7 +137,7 @@ class PascalVOC(data.Dataset):
         sbd_path = self.sbd_path
         target_path = pjoin(self.root, "SegmentationClass/pre_encoded")
         if not os.path.exists(target_path):
-            os.makedirs(target_path)
+            os.makedirs(target_path) 
         path = pjoin(sbd_path, "dataset/train.txt")
         sbd_train_list = tuple(open(path, "r"))
         sbd_train_list = [id_.rstrip() for id_ in sbd_train_list]
