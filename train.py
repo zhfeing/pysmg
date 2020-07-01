@@ -181,20 +181,20 @@ def train(cfg, model: torch.nn.Module, train_loader, val_loader):
                 val_loss_meter.reset()
                 running_metrics_val.reset()
 
-                # if score["Mean IoU : \t"] >= best_iou:
-                #     best_iou = score["Mean IoU : \t"]
-                #     state = {
-                #         "iter": i + 1,
-                #         "model_state": model.state_dict(),
-                #         "optimizer_state": optimizer.state_dict(),
-                #         "scheduler_state": scheduler.state_dict(),
-                #         "best_iou": best_iou,
-                #     }
-                #     save_path = os.path.join(
-                #         writer.file_writer.get_logdir(),
-                #         "{}_{}_best_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"]),
-                #     )
-                #     torch.save(state, save_path)
+                if score["Mean IoU : \t"] >= best_iou:
+                    best_iou = score["Mean IoU : \t"]
+                    state = {
+                        "iter": i + 1,
+                        "model_state": model.state_dict(),
+                        "optimizer_state": optimizer.state_dict(),
+                        "scheduler_state": scheduler.state_dict(),
+                        "best_iou": best_iou,
+                    }
+                    save_path = os.path.join(
+                        writer.file_writer.get_logdir(),
+                        "{}_{}_best_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"]),
+                    )
+                    torch.save(state, save_path)
 
             if (i + 1) == cfg["training"]["train_iters"]:
                 flag = False

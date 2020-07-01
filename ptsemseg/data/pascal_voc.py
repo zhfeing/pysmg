@@ -4,17 +4,13 @@ import collections
 import glob
 
 import numpy as np
-import imageio
 import scipy.io as io
 import matplotlib.pyplot as plt
 from PIL import Image
 from tqdm import tqdm
 
-import torch
 from torch.utils import data
-from torchvision import transforms
 
-from ptsemseg.utils import toimage
 from ptsemseg.data.transforms import default_transforms
 
 

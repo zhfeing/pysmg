@@ -70,9 +70,9 @@ training:
     loss:
         name: cross_entropy
     resume:
-    print_interval: 2
-    train_iters: 1000
-    val_interval: 10
+    print_interval: 1
+    train_iters: 5000
+    val_interval: 100
 
 
 validation:
@@ -82,7 +82,7 @@ validation:
 # unet
 model:
     arch: unet
-    encoder_name: resnet18
+    encoder_name: resnet34
     encoder_depth: 5
     encoder_weights: imagenet
     decoder_use_batchnorm: True
