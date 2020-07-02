@@ -71,7 +71,7 @@ training:
         name: cross_entropy
     resume:
     print_interval: 1
-    train_iters: 5000
+    train_iters: 8000
     val_interval: 100
 
 

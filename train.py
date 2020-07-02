@@ -5,6 +5,7 @@ import shutil
 import copy
 import time
 import tqdm
+import logging
 
 import torch
 from torch.utils.data import DataLoader
@@ -12,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from ptsemseg.data import get_dataset
 from ptsemseg.augmentations import get_composed_augmentations
-from ptsemseg.utils import get_logger, make_deterministic
+from ptsemseg.utils import make_deterministic
 from ptsemseg.metrics import RunningScore
 from ptsemseg.model import get_model
 from ptsemseg.optimizers import get_optimizer
@@ -74,7 +75,29 @@ def get_dataloader(cfg):
     return train_loader, val_loader, n_classes
 
 
-def train(cfg, model: torch.nn.Module, train_loader, val_loader):
+def eval(model, val_loader, loss_fn):
+    # Setup Metrics
+    n_classes = val_loader.dataset.n_classes
+    val_loss_meter = AverageMeter()
+    running_metrics_val = RunningScore(n_classes)
+    model.eval()
+    with torch.no_grad():
+        for images_val, labels_val in tqdm.tqdm(val_loader):
+            images_val = images_val.to(device)
+            labels_val = labels_val.to(device)
+
+            outputs = model(images_val)
+            val_loss = loss_fn(input=outputs, target=labels_val)
+
+            pred = outputs.max(1)[1].cpu().numpy()
+            gt = labels_val.cpu().numpy()
+
+            running_metrics_val.update(gt, pred)
+            val_loss_meter.update(val_loss.item())
+    return running_metrics_val, val_loss_meter
+
+
+def train(cfg, model: torch.nn.Module, train_loader, val_loader, ckpt_dir):
     model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
     model = model.cuda()
     # Setup optimizer, lr_scheduler and loss function
@@ -109,7 +132,6 @@ def train(cfg, model: torch.nn.Module, train_loader, val_loader):
         else:
             logger.info("No checkpoint found at '{}'".format(cfg["training"]["resume"]))
 
-    val_loss_meter = AverageMeter()
     time_meter = AverageMeter()
 
     best_iou = -100.0
@@ -150,27 +172,13 @@ def train(cfg, model: torch.nn.Module, train_loader, val_loader):
 
             if (i + 1) % cfg["training"]["val_interval"] == 0 or (i + 1) == cfg["training"]["train_iters"]:
                 logger.info("start evaling")
-                model.eval()
-                with torch.no_grad():
-                    for images_val, labels_val in tqdm.tqdm(val_loader):
-                        images_val = images_val.to(device)
-                        labels_val = labels_val.to(device)
-
-                        outputs = model(images_val)
-                        val_loss = loss_fn(input=outputs, target=labels_val)
-
-                        pred = outputs.max(1)[1].cpu().numpy()
-                        gt = labels_val.cpu().numpy()
-
-                        running_metrics_val.update(gt, pred)
-                        val_loss_meter.update(val_loss.item())
+                running_metrics_val, val_loss_meter = eval(model, val_loader, loss_fn)
 
                 writer.add_scalar("loss/val_loss", val_loss_meter.avg, i + 1)
                 logger.info("Iter %d Loss: %.4f" % (i + 1, val_loss_meter.avg))
 
                 score, class_iou = running_metrics_val.get_scores()
                 for k, v in score.items():
-                    print(k, v)
                     logger.info("{}: {}".format(k, v))
                     writer.add_scalar("val_metrics/{}".format(k), v, i + 1)
 
@@ -178,18 +186,23 @@ def train(cfg, model: torch.nn.Module, train_loader, val_loader):
                     logger.info("{}: {}".format(k, v))
                     writer.add_scalar("val_metrics/cls_{}".format(k), v, i + 1)
 
-                val_loss_meter.reset()
-                running_metrics_val.reset()
+                # save ckpt
+                iou = score["Mean IoU : \t"]
+                state = {
+                    "iter": i + 1,
+                    "model_state": model.state_dict(),
+                    "optimizer_state": optimizer.state_dict(),
+                    "scheduler_state": scheduler.state_dict(),
+                    "iou": iou,
+                }
+                save_path = os.path.join(
+                    ckpt_dir,
+                    "{}_{}_iter_{}_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"], i + 1),
+                )
+                torch.save(state, save_path)
 
-                if score["Mean IoU : \t"] >= best_iou:
-                    best_iou = score["Mean IoU : \t"]
-                    state = {
-                        "iter": i + 1,
-                        "model_state": model.state_dict(),
-                        "optimizer_state": optimizer.state_dict(),
-                        "scheduler_state": scheduler.state_dict(),
-                        "best_iou": best_iou,
-                    }
+                if iou >= best_iou:
+                    best_iou = iou
                     save_path = os.path.join(
                         writer.file_writer.get_logdir(),
                         "{}_{}_best_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"]),
@@ -221,11 +234,29 @@ if __name__ == "__main__":
         os.path.basename(args.config)[:-4],
         str(seed)
     )
+
+    ckpt_dir = os.path.join(logdir, "ckpt")
+    os.makedirs(logdir, exist_ok=True)
+    os.makedirs(ckpt_dir, exist_ok=True)
+
     writer = SummaryWriter(log_dir=logdir, flush_secs=1)
 
     shutil.copy(args.config, logdir)
 
-    logger = get_logger(logdir)
+    # get logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler(os.path.join(logdir, "train.log"), "w")
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.propagate = False
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+
     logger.info("start training")
     logger.info("RUNDIR: {}".format(logdir))
 
@@ -236,9 +267,12 @@ if __name__ == "__main__":
 
     train_loader, val_loader, n_classes = get_dataloader(cfg)
 
-    # Setup Metrics
-    running_metrics_val = RunningScore(n_classes)
+    logger.info("load dataset {} done, total classes: {}, train num: {}, val num: {}".format(
+        cfg["data"]["dataset"],
+        n_classes,
+        len(train_loader.dataset),
+        len(val_loader.dataset)
+    ))
 
     model = get_model(cfg, n_classes).to(device)
-
-    train(cfg, model, train_loader, val_loader)
+    train(cfg, model, train_loader, val_loader, ckpt_dir)
