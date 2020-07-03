@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from ptsemseg.models.utils import conv2DBatchNormRelu, linknetUp, residualBlock
+from ptsemseg.models.utils import Conv2DBatchNormRelu, linknetUp, residualBlock
 
 
 class linknet(nn.Module):
@@ -20,7 +20,7 @@ class linknet(nn.Module):
         self.inplanes = filters[0]
 
         # Encoder
-        self.convbnrelu1 = conv2DBatchNormRelu(
+        self.convbnrelu1 = Conv2DBatchNormRelu(
             in_channels=3, k_size=7, n_filters=64, padding=3, stride=2, bias=False
         )
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -44,7 +44,7 @@ class linknet(nn.Module):
             nn.BatchNorm2d(32 / feature_scale),
             nn.ReLU(inplace=True),
         )
-        self.finalconvbnrelu2 = conv2DBatchNormRelu(
+        self.finalconvbnrelu2 = Conv2DBatchNormRelu(
             in_channels=32 / feature_scale,
             k_size=3,
             n_filters=32 / feature_scale,

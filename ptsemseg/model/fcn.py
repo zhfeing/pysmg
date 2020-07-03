@@ -1,19 +1,19 @@
-import functools
-
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ptsemseg.models.utils import get_upsampling_weight
-from ptsemseg.loss import cross_entropy2d
+from ptsemseg.model.utils import get_upsampling_weight
+
+
+__all__ = ["FCN32s", "FCN16s", "FCN8s"]
 
 
 # FCN32s
-class fcn32s(nn.Module):
+class FCN32s(nn.Module):
     def __init__(self, n_classes=21, learned_billinear=False):
-        super(fcn32s, self).__init__()
+        super(FCN32s, self).__init__()
         self.learned_billinear = learned_billinear
         self.n_classes = n_classes
-        self.loss = functools.partial(cross_entropy2d, size_average=False)
+        # self.loss = functools.partial(cross_entropy2d, size_average=False)
 
         self.conv_block1 = nn.Sequential(
             nn.Conv2d(3, 64, 3, padding=100),
@@ -100,31 +100,31 @@ class fcn32s(nn.Module):
         features = list(vgg16.features.children())
 
         for idx, conv_block in enumerate(blocks):
-            for l1, l2 in zip(features[ranges[idx][0] : ranges[idx][1]], conv_block):
+            for l1, l2 in zip(features[ranges[idx][0]: ranges[idx][1]], conv_block):
                 if isinstance(l1, nn.Conv2d) and isinstance(l2, nn.Conv2d):
                     assert l1.weight.size() == l2.weight.size()
                     assert l1.bias.size() == l2.bias.size()
-                    l2.weight.data = l1.weight.data
-                    l2.bias.data = l1.bias.data
+                    l2.weight = l1.weight
+                    l2.bias = l1.bias
         for i1, i2 in zip([0, 3], [0, 3]):
             l1 = vgg16.classifier[i1]
             l2 = self.classifier[i2]
-            l2.weight.data = l1.weight.data.view(l2.weight.size())
-            l2.bias.data = l1.bias.data.view(l2.bias.size())
+            l2.weight = l1.weight.view(l2.weight.size())
+            l2.bias = l1.bias.view(l2.bias.size())
         n_class = self.classifier[6].weight.size()[0]
         if copy_fc8:
             l1 = vgg16.classifier[6]
             l2 = self.classifier[6]
-            l2.weight.data = l1.weight.data[:n_class, :].view(l2.weight.size())
-            l2.bias.data = l1.bias.data[:n_class]
+            l2.weight = l1.weight[:n_class, :].view(l2.weight.size())
+            l2.bias = l1.bias[:n_class]
 
 
-class fcn16s(nn.Module):
+class FCN16s(nn.Module):
     def __init__(self, n_classes=21, learned_billinear=False):
-        super(fcn16s, self).__init__()
+        super(FCN16s, self).__init__()
         self.learned_billinear = learned_billinear
         self.n_classes = n_classes
-        self.loss = functools.partial(cross_entropy2d, size_average=False)
+        # self.loss = functools.partial(cross_entropy2d, size_average=False)
 
         self.conv_block1 = nn.Sequential(
             nn.Conv2d(3, 64, 3, padding=100),
@@ -217,33 +217,33 @@ class fcn16s(nn.Module):
         features = list(vgg16.features.children())
 
         for idx, conv_block in enumerate(blocks):
-            for l1, l2 in zip(features[ranges[idx][0] : ranges[idx][1]], conv_block):
+            for l1, l2 in zip(features[ranges[idx][0]: ranges[idx][1]], conv_block):
                 if isinstance(l1, nn.Conv2d) and isinstance(l2, nn.Conv2d):
                     # print(idx, l1, l2)
                     assert l1.weight.size() == l2.weight.size()
                     assert l1.bias.size() == l2.bias.size()
-                    l2.weight.data = l1.weight.data
-                    l2.bias.data = l1.bias.data
+                    l2.weight = l1.weight
+                    l2.bias = l1.bias
         for i1, i2 in zip([0, 3], [0, 3]):
             l1 = vgg16.classifier[i1]
             l2 = self.classifier[i2]
-            l2.weight.data = l1.weight.data.view(l2.weight.size())
-            l2.bias.data = l1.bias.data.view(l2.bias.size())
+            l2.weight = l1.weight.view(l2.weight.size())
+            l2.bias = l1.bias.view(l2.bias.size())
         n_class = self.classifier[6].weight.size()[0]
         if copy_fc8:
             l1 = vgg16.classifier[6]
             l2 = self.classifier[6]
-            l2.weight.data = l1.weight.data[:n_class, :].view(l2.weight.size())
-            l2.bias.data = l1.bias.data[:n_class]
+            l2.weight = l1.weight[:n_class, :].view(l2.weight.size())
+            l2.bias = l1.bias[:n_class]
 
 
 # FCN 8s
-class fcn8s(nn.Module):
+class FCN8s(nn.Module):
     def __init__(self, n_classes=21, learned_billinear=True):
-        super(fcn8s, self).__init__()
+        super(FCN8s, self).__init__()
         self.learned_billinear = learned_billinear
         self.n_classes = n_classes
-        self.loss = functools.partial(cross_entropy2d, size_average=False)
+        # self.loss = functools.partial(cross_entropy2d, size_average=False)
 
         self.conv_block1 = nn.Sequential(
             nn.Conv2d(3, 64, 3, padding=100),
@@ -317,7 +317,7 @@ class fcn8s(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.ConvTranspose2d):
-                m.weight.data.copy_(
+                m.weight.copy_(
                     get_upsampling_weight(m.in_channels, m.out_channels, m.kernel_size[0])
                 )
 
@@ -333,16 +333,16 @@ class fcn8s(nn.Module):
         if self.learned_billinear:
             upscore2 = self.upscore2(score)
             score_pool4c = self.score_pool4(conv4)[
-                :, :, 5 : 5 + upscore2.size()[2], 5 : 5 + upscore2.size()[3]
+                :, :, 5: 5 + upscore2.size()[2], 5: 5 + upscore2.size()[3]
             ]
             upscore_pool4 = self.upscore4(upscore2 + score_pool4c)
 
             score_pool3c = self.score_pool3(conv3)[
-                :, :, 9 : 9 + upscore_pool4.size()[2], 9 : 9 + upscore_pool4.size()[3]
+                :, :, 9: 9 + upscore_pool4.size()[2], 9: 9 + upscore_pool4.size()[3]
             ]
 
             out = self.upscore8(score_pool3c + upscore_pool4)[
-                :, :, 31 : 31 + x.size()[2], 31 : 31 + x.size()[3]
+                :, :, 31: 31 + x.size()[2], 31: 31 + x.size()[3]
             ]
             return out.contiguous()
 
@@ -370,20 +370,20 @@ class fcn8s(nn.Module):
         features = list(vgg16.features.children())
 
         for idx, conv_block in enumerate(blocks):
-            for l1, l2 in zip(features[ranges[idx][0] : ranges[idx][1]], conv_block):
+            for l1, l2 in zip(features[ranges[idx][0]: ranges[idx][1]], conv_block):
                 if isinstance(l1, nn.Conv2d) and isinstance(l2, nn.Conv2d):
                     assert l1.weight.size() == l2.weight.size()
                     assert l1.bias.size() == l2.bias.size()
-                    l2.weight.data = l1.weight.data
-                    l2.bias.data = l1.bias.data
+                    l2.weight = l1.weight
+                    l2.bias = l1.bias
         for i1, i2 in zip([0, 3], [0, 3]):
             l1 = vgg16.classifier[i1]
             l2 = self.classifier[i2]
-            l2.weight.data = l1.weight.data.view(l2.weight.size())
-            l2.bias.data = l1.bias.data.view(l2.bias.size())
+            l2.weight = l1.weight.view(l2.weight.size())
+            l2.bias = l1.bias.view(l2.bias.size())
         n_class = self.classifier[6].weight.size()[0]
         if copy_fc8:
             l1 = vgg16.classifier[6]
             l2 = self.classifier[6]
-            l2.weight.data = l1.weight.data[:n_class, :].view(l2.weight.size())
-            l2.bias.data = l1.bias.data[:n_class]
+            l2.weight = l1.weight[:n_class, :].view(l2.weight.size())
+            l2.bias = l1.bias[:n_class]

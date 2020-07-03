@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from ptsemseg import caffe_pb2
-from ptsemseg.models.utils import conv2DBatchNormRelu, residualBlockPSP, pyramidPooling
+from ptsemseg.models.utils import Conv2DBatchNormRelu, ResidualBlockPSP, PyramidPooling
 from ptsemseg.loss.loss import multi_scale_cross_entropy2d
 
 pspnet_specs = {
@@ -45,34 +45,34 @@ class pspnet(nn.Module):
         self.input_size = pspnet_specs[version]["input_size"] if version is not None else input_size
 
         # Encoder
-        self.convbnrelu1_1 = conv2DBatchNormRelu(
+        self.convbnrelu1_1 = Conv2DBatchNormRelu(
             in_channels=3, k_size=3, n_filters=64, padding=1, stride=2, bias=False
         )
-        self.convbnrelu1_2 = conv2DBatchNormRelu(
+        self.convbnrelu1_2 = Conv2DBatchNormRelu(
             in_channels=64, k_size=3, n_filters=64, padding=1, stride=1, bias=False
         )
-        self.convbnrelu1_3 = conv2DBatchNormRelu(
+        self.convbnrelu1_3 = Conv2DBatchNormRelu(
             in_channels=64, k_size=3, n_filters=128, padding=1, stride=1, bias=False
         )
 
         # Vanilla Residual Blocks
-        self.res_block2 = residualBlockPSP(self.block_config[0], 128, 64, 256, 1, 1)
-        self.res_block3 = residualBlockPSP(self.block_config[1], 256, 128, 512, 2, 1)
+        self.res_block2 = ResidualBlockPSP(self.block_config[0], 128, 64, 256, 1, 1)
+        self.res_block3 = ResidualBlockPSP(self.block_config[1], 256, 128, 512, 2, 1)
 
         # Dilated Residual Blocks
-        self.res_block4 = residualBlockPSP(self.block_config[2], 512, 256, 1024, 1, 2)
-        self.res_block5 = residualBlockPSP(self.block_config[3], 1024, 512, 2048, 1, 4)
+        self.res_block4 = ResidualBlockPSP(self.block_config[2], 512, 256, 1024, 1, 2)
+        self.res_block5 = ResidualBlockPSP(self.block_config[3], 1024, 512, 2048, 1, 4)
 
         # Pyramid Pooling Module
-        self.pyramid_pooling = pyramidPooling(2048, [6, 3, 2, 1])
+        self.pyramid_pooling = PyramidPooling(2048, [6, 3, 2, 1])
 
         # Final conv layers
-        self.cbr_final = conv2DBatchNormRelu(4096, 512, 3, 1, 1, False)
+        self.cbr_final = Conv2DBatchNormRelu(4096, 512, 3, 1, 1, False)
         self.dropout = nn.Dropout2d(p=0.1, inplace=False)
         self.classification = nn.Conv2d(512, self.n_classes, 1, 1, 0)
 
         # Auxiliary layers for training
-        self.convbnrelu4_aux = conv2DBatchNormRelu(
+        self.convbnrelu4_aux = Conv2DBatchNormRelu(
             in_channels=1024, k_size=3, n_filters=256, padding=1, stride=1, bias=False
         )
         self.aux_cls = nn.Conv2d(256, self.n_classes, 1, 1, 0)
@@ -130,18 +130,18 @@ class pspnet(nn.Module):
         def _get_layer_params(layer, ltype):
 
             if ltype == "BNData":
-                gamma = np.array(layer.blobs[0].data)
-                beta = np.array(layer.blobs[1].data)
-                mean = np.array(layer.blobs[2].data)
-                var = np.array(layer.blobs[3].data)
+                gamma = np.array(layer.blobs[0])
+                beta = np.array(layer.blobs[1])
+                mean = np.array(layer.blobs[2])
+                var = np.array(layer.blobs[3])
                 return [mean, var, gamma, beta]
 
             elif ltype in ["ConvolutionData", "HoleConvolutionData"]:
                 is_bias = layer.convolution_param.bias_term
-                weights = np.array(layer.blobs[0].data)
+                weights = np.array(layer.blobs[0])
                 bias = []
                 if is_bias:
-                    bias = np.array(layer.blobs[1].data)
+                    bias = np.array(layer.blobs[1])
                 return [weights, bias]
 
             elif ltype == "InnerProduct":
@@ -323,9 +323,9 @@ class pspnet(nn.Module):
                     if include_flip_mode:
                         flp = flp.cuda()
 
-                psub1 = F.softmax(self.forward(inp), dim=1).data.cpu().numpy()
+                psub1 = F.softmax(self.forward(inp), dim=1).cpu().numpy()
                 if include_flip_mode:
-                    psub2 = F.softmax(self.forward(flp), dim=1).data.cpu().numpy()
+                    psub2 = F.softmax(self.forward(flp), dim=1).cpu().numpy()
                     psub = (psub1 + psub2[:, :, :, ::-1]) / 2.0
                 else:
                     psub = psub1

@@ -52,17 +52,17 @@ def validate(cfg, args):
             outputs = model(images)
 
             # Flip images in numpy (not support in tensor)
-            outputs = outputs.data.cpu().numpy()
-            flipped_images = np.copy(images.data.cpu().numpy()[:, :, :, ::-1])
+            outputs = outputs.cpu().numpy()
+            flipped_images = np.copy(images.cpu().numpy()[:, :, :, ::-1])
             flipped_images = torch.from_numpy(flipped_images).float().to(device)
             outputs_flipped = model(flipped_images)
-            outputs_flipped = outputs_flipped.data.cpu().numpy()
+            outputs_flipped = outputs_flipped.cpu().numpy()
             outputs = (outputs + outputs_flipped[:, :, :, ::-1]) / 2.0
 
             pred = np.argmax(outputs, axis=1)
         else:
             outputs = model(images)
-            pred = outputs.data.max(1)[1].cpu().numpy()
+            pred = outputs.max(1)[1].cpu().numpy()
 
         gt = labels.numpy()
 

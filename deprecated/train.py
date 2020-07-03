@@ -160,8 +160,8 @@ def train(cfg, writer, logger):
                         outputs = model(images_val)
                         val_loss = loss_fn(input=outputs, target=labels_val)
 
-                        pred = outputs.data.max(1)[1].cpu().numpy()
-                        gt = labels_val.data.cpu().numpy()
+                        pred = outputs.max(1)[1].cpu().numpy()
+                        gt = labels_val.cpu().numpy()
 
                         running_metrics_val.update(gt, pred)
                         val_loss_meter.update(val_loss.item())

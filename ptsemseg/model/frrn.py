@@ -2,7 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ptsemseg.models.utils import FRRU, RU, conv2DBatchNormRelu, conv2DGroupNormRelu
+from ptsemseg.model.utils import FRRU, RU, Conv2DBatchNormRelu, Conv2DGroupNormRelu
+
+
+__all__ = ["FRRN"]
+
 
 frrn_specs_dic = {
     "A": {
@@ -16,7 +20,7 @@ frrn_specs_dic = {
 }
 
 
-class frrn(nn.Module):
+class FRRN(nn.Module):
     """
     Full Resolution Residual Networks for Semantic Segmentation
     URL: https://arxiv.org/abs/1611.08323
@@ -27,16 +31,16 @@ class frrn(nn.Module):
     """
 
     def __init__(self, n_classes=21, model_type="B", group_norm=False, n_groups=16):
-        super(frrn, self).__init__()
+        super(FRRN, self).__init__()
         self.n_classes = n_classes
         self.model_type = model_type
         self.group_norm = group_norm
         self.n_groups = n_groups
 
         if self.group_norm:
-            self.conv1 = conv2DGroupNormRelu(3, 48, 5, 1, 2)
+            self.conv1 = Conv2DGroupNormRelu(3, 48, 5, 1, 2)
         else:
-            self.conv1 = conv2DBatchNormRelu(3, 48, 5, 1, 2)
+            self.conv1 = Conv2DBatchNormRelu(3, 48, 5, 1, 2)
 
         self.up_residual_units = []
         self.down_residual_units = []
