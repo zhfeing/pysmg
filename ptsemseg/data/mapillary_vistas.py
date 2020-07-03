@@ -7,7 +7,7 @@ from torch.utils import data
 from PIL import Image
 
 from ptsemseg.utils import recursive_glob
-from ptsemseg.augmentations import Compose, RandomHorizontallyFlip, RandomRotate
+from ptsemseg.data.transforms import default_transforms
 
 
 class MapillaryVistas(data.Dataset):
@@ -15,19 +15,27 @@ class MapillaryVistas(data.Dataset):
         self,
         root,
         split="training",
-        img_size=(640, 1280),
+        img_size="same",
         is_transform=True,
         augmentations=None,
-        test_mode=False,
+        normalize_mean=[0.485, 0.456, 0.406],
+        normalize_std=[0.229, 0.224, 0.225],
     ):
         self.root = root
+        if split == "train":
+            split = "training"
+        if split == "val":
+            split = "validation"
+        if split == "test":
+            split = "testing"
         self.split = split
         self.is_transform = is_transform
         self.augmentations = augmentations
         self.n_classes = 65
 
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
-        self.mean = np.array([80.5423, 91.3162, 81.4312])
+        # self.mean = np.array([80.5423, 91.3162, 81.4312])
+        self.normalize = (normalize_mean, normalize_std)
         self.files = {}
 
         self.images_base = os.path.join(self.root, self.split, "images")
@@ -86,16 +94,7 @@ class MapillaryVistas(data.Dataset):
         return img, lbl
 
     def transform(self, img, lbl):
-        if self.img_size == ("same", "same"):
-            pass
-        else:
-            img = img.resize(
-                (self.img_size[0], self.img_size[1]), resample=Image.LANCZOS
-            )  # uint8 with RGB mode
-            lbl = lbl.resize((self.img_size[0], self.img_size[1]))
-        img = np.array(img).astype(np.float64) / 255.0
-        img = torch.from_numpy(img.transpose(2, 0, 1)).float()  # From HWC to CHW
-        lbl = torch.from_numpy(np.array(lbl)).long()
+        img, lbl = default_transforms(img, lbl, self.normalize, self.img_size)
         lbl[lbl == 65] = self.ignore_id
         return img, lbl
 
@@ -113,17 +112,3 @@ class MapillaryVistas(data.Dataset):
         rgb[:, :, 1] = g / 255.0
         rgb[:, :, 2] = b / 255.0
         return rgb
-
-
-if __name__ == "__main__":
-    augment = Compose([RandomHorizontallyFlip(), RandomRotate(6)])
-
-    local_path = "/private/home/meetshah/datasets/seg/vistas/"
-    dst = MapillaryVistas(
-        local_path, img_size=(512, 1024), is_transform=True, augmentations=augment
-    )
-    bs = 8
-    trainloader = data.DataLoader(dst, batch_size=bs, num_workers=4, shuffle=True)
-    for i, data_samples in enumerate(trainloader):
-        x = dst.decode_segmap(data_samples[1][0].numpy())
-        print("batch :", i)

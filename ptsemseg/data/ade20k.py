@@ -31,8 +31,8 @@ class ADE20K(data.Dataset):
         self.augmentations = augmentations
         self.n_classes = 150
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
-        self.normalize = (normalize_mean, normalize_std)
         # self.mean = np.array([104.00699, 116.66877, 122.67892])
+        self.normalize = (normalize_mean, normalize_std)
         self.files = collections.defaultdict(list)
 
         for split in ["training", "validation"]:
