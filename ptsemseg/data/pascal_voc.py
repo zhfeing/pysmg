@@ -46,7 +46,7 @@ class PascalVOC(data.Dataset):
         sbd_path=None,
         split="train_aug",
         is_transform=False,
-        img_size=None,
+        img_size="same",
         augmentations=None,
         normalize_mean=[0.485, 0.456, 0.406],
         normalize_std=[0.229, 0.224, 0.225],
@@ -62,7 +62,7 @@ class PascalVOC(data.Dataset):
         self.normalize = (normalize_mean, normalize_std)
 
         for split in ["train", "val", "trainval"]:
-            path = pjoin(self.root, "ImageSets/Segmentation", split + ".txt")
+            path = pjoin(self.root, "ImageSets", "Segmentation", split + ".txt")
             file_list = tuple(open(path, "r"))
             file_list = [id_.rstrip() for id_ in file_list]
             self.files[split] = file_list
@@ -74,7 +74,7 @@ class PascalVOC(data.Dataset):
     def __getitem__(self, index):
         im_name = self.files[self.split][index]
         im_path = pjoin(self.root, "JPEGImages", im_name + ".jpg")
-        lbl_path = pjoin(self.root, "SegmentationClass/pre_encoded", im_name + ".png")
+        lbl_path = pjoin(self.root, "SegmentationClass", "pre_encoded", im_name + ".png")
         im = Image.open(im_path)
         lbl = Image.open(lbl_path)
         if self.augmentations is not None:
@@ -131,10 +131,10 @@ class PascalVOC(data.Dataset):
         according to the description in the class docstring
         """
         sbd_path = self.sbd_path
-        target_path = pjoin(self.root, "SegmentationClass/pre_encoded")
+        target_path = pjoin(self.root, "SegmentationClass", "pre_encoded")
         if not os.path.exists(target_path):
             os.makedirs(target_path) 
-        path = pjoin(sbd_path, "dataset/train.txt")
+        path = pjoin(sbd_path, "dataset", "train.txt")
         sbd_train_list = tuple(open(path, "r"))
         sbd_train_list = [id_.rstrip() for id_ in sbd_train_list]
         train_aug = self.files["train"] + sbd_train_list
@@ -151,7 +151,7 @@ class PascalVOC(data.Dataset):
         if len(pre_encoded) != expected:
             print("Pre-encoding segmentation masks...")
             for ii in tqdm(sbd_train_list):
-                lbl_path = pjoin(sbd_path, "dataset/cls", ii + ".mat")
+                lbl_path = pjoin(sbd_path, "dataset", "cls", ii + ".mat")
                 data = io.loadmat(lbl_path)
                 lbl = data["GTcls"][0]["Segmentation"][0].astype(np.int32)
                 lbl = Image.fromarray(lbl)

@@ -28,7 +28,7 @@ class NYUv2(data.Dataset):
         root,
         split="training",
         is_transform=False,
-        img_size=(480, 640),
+        img_size="same",
         augmentations=None,
         normalize_mean=[0.485, 0.456, 0.406],
         normalize_std=[0.229, 0.224, 0.225],
@@ -45,7 +45,7 @@ class NYUv2(data.Dataset):
         self.split = split
 
         for split in ["train", "test"]:
-            file_list = recursive_glob(rootdir=self.root + "/{}/".format(split), suffix="png")
+            file_list = recursive_glob(rootdir=os.path.join(self.root, split), suffix="png")
             self.files[split] = file_list
 
     def __len__(self):

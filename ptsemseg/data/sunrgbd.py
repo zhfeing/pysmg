@@ -1,6 +1,7 @@
 import collections
 import numpy as np
 from PIL import Image
+import os
 
 import torch
 from torch.utils import data
@@ -27,7 +28,7 @@ class SUNRGBD(data.Dataset):
         root,
         split="training",
         is_transform=False,
-        img_size=(480, 640),
+        img_size="same",
         augmentations=None,
         normalize_mean=[0.485, 0.456, 0.406],
         normalize_std=[0.229, 0.224, 0.225],
@@ -46,14 +47,14 @@ class SUNRGBD(data.Dataset):
 
         for split in ["train", "test"]:
             file_list = sorted(recursive_glob(
-                rootdir=self.root + "/{}/".format(split),
+                rootdir=os.path.join(self.root, split),
                 suffix="jpg"
             ))
             self.files[split] = file_list
 
         for split in ["train", "test"]:
             file_list = sorted(
-                recursive_glob(rootdir=self.root + "/annot_{}/".format(split), suffix="png")
+                recursive_glob(rootdir=os.path.join(self.root, "annot_{}".format(split)), suffix="png")
             )
             self.anno_files[split] = file_list
 

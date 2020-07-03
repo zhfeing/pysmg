@@ -1,12 +1,12 @@
-# camvid
+# ade20k
 data:
-    dataset: camvid
+    dataset: ade20k
     train_split: train
     val_split: val
     img_rows: 448
     img_cols: 448
 
-    path: /home/zhfeing/datasets/camvid/CamVid11
+    path: /home/zhfeing/datasets/ADE20K_2016_07_26
     normalize_mean: [0.485, 0.456, 0.406]
     normalize_std: [0.229, 0.224, 0.225]
 

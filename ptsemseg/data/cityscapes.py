@@ -56,9 +56,8 @@ class Cityscapes(data.Dataset):
         root,
         split="train",
         is_transform=False,
-        img_size=(512, 1024),
+        img_size="same",
         augmentations=None,
-        img_norm=True,
         version="cityscapes",
         normalize_mean=[0.485, 0.456, 0.406],
         normalize_std=[0.229, 0.224, 0.225],
@@ -75,7 +74,6 @@ class Cityscapes(data.Dataset):
         self.split = split
         self.is_transform = is_transform
         self.augmentations = augmentations
-        self.img_norm = img_norm
         self.n_classes = 19
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         self.normalize = (normalize_mean, normalize_std)

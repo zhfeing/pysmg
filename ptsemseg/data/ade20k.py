@@ -1,43 +1,45 @@
 import collections
-import torch
-import torchvision
+import os
 import numpy as np
-import scipy.misc as m
 import matplotlib.pyplot as plt
+from PIL import Image
 
 from torch.utils import data
 
 from ptsemseg.utils import recursive_glob
+from ptsemseg.data.transforms import default_transforms
 
 
 class ADE20K(data.Dataset):
     def __init__(
         self,
         root,
-        split="training",
+        split="train",
         is_transform=False,
-        img_size=512,
+        img_size="same",
         augmentations=None,
-        img_norm=True,
-        test_mode=False,
+        normalize_mean=[0.485, 0.456, 0.406],
+        normalize_std=[0.229, 0.224, 0.225],
     ):
         self.root = root
+        if split == "train":
+            split = "training"
+        if split == "val":
+            split = "validation"
         self.split = split
         self.is_transform = is_transform
         self.augmentations = augmentations
-        self.img_norm = img_norm
-        self.test_mode = test_mode
         self.n_classes = 150
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
-        self.mean = np.array([104.00699, 116.66877, 122.67892])
+        self.normalize = (normalize_mean, normalize_std)
+        # self.mean = np.array([104.00699, 116.66877, 122.67892])
         self.files = collections.defaultdict(list)
 
-        if not self.test_mode:
-            for split in ["training", "validation"]:
-                file_list = recursive_glob(
-                    rootdir=self.root + "images/" + self.split + "/", suffix=".jpg"
-                )
-                self.files[split] = file_list
+        for split in ["training", "validation"]:
+            file_list = recursive_glob(
+                rootdir=os.path.join(self.root, "images", self.split), suffix=".jpg"
+            )
+            self.files[split] = file_list
 
     def __len__(self):
         return len(self.files[self.split])
@@ -46,11 +48,8 @@ class ADE20K(data.Dataset):
         img_path = self.files[self.split][index].rstrip()
         lbl_path = img_path[:-4] + "_seg.png"
 
-        img = m.imread(img_path)
-        img = np.array(img, dtype=np.uint8)
-
-        lbl = m.imread(lbl_path)
-        lbl = np.array(lbl, dtype=np.int32)
+        img = Image.open(img_path)
+        lbl = Image.open(lbl_path)
 
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
@@ -61,26 +60,9 @@ class ADE20K(data.Dataset):
         return img, lbl
 
     def transform(self, img, lbl):
-        img = m.imresize(img, (self.img_size[0], self.img_size[1]))  # uint8 with RGB mode
-        img = img[:, :, ::-1]  # RGB -> BGR
-        img = img.astype(np.float64)
-        img -= self.mean
-        if self.img_norm:
-            # Resize scales images from 0 to 255, thus we need
-            # to divide by 255.0
-            img = img.astype(float) / 255.0
-        # NHWC -> NCHW
-        img = img.transpose(2, 0, 1)
-
-        lbl = self.encode_segmap(lbl)
-        classes = np.unique(lbl)
-        lbl = lbl.astype(float)
-        lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), "nearest", mode="F")
-        lbl = lbl.astype(int)
-        assert np.all(classes == np.unique(lbl))
-
-        img = torch.from_numpy(img).float()
-        lbl = torch.from_numpy(lbl).long()
+        lbl = self.encode_segmap(np.array(lbl))
+        lbl = Image.fromarray(lbl)
+        img, lbl = default_transforms(img, lbl, self.normalize, self.img_size)
         return img, lbl
 
     def encode_segmap(self, mask):
@@ -110,20 +92,3 @@ class ADE20K(data.Dataset):
             plt.show()
         else:
             return rgb
-
-
-if __name__ == "__main__":
-    local_path = "/Users/meet/data/ADE20K_2016_07_26/"
-    dst = ADE20K(local_path, is_transform=True)
-    trainloader = data.DataLoader(dst, batch_size=4)
-    for i, data_samples in enumerate(trainloader):
-        imgs, labels = data_samples
-        if i == 0:
-            img = torchvision.utils.make_grid(imgs).numpy()
-            img = np.transpose(img, (1, 2, 0))
-            img = img[:, :, ::-1]
-            plt.imshow(img)
-            plt.show()
-            for j in range(4):
-                plt.imshow(dst.decode_segmap(labels.numpy()[j]))
-                plt.show()

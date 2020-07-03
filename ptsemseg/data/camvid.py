@@ -3,7 +3,6 @@ import collections
 import numpy as np
 from PIL import Image
 
-import torch
 from torch.utils import data
 
 from ptsemseg.data.transforms import default_transforms
@@ -15,7 +14,7 @@ class Camvid(data.Dataset):
         root,
         split="train",
         is_transform=False,
-        img_size=None,
+        img_size="same",
         augmentations=None,
         normalize_mean=[0.485, 0.456, 0.406],
         normalize_std=[0.229, 0.224, 0.225],
@@ -31,7 +30,7 @@ class Camvid(data.Dataset):
         self.normalize = (normalize_mean, normalize_std)
 
         for split in ["train", "test", "val"]:
-            file_list = os.listdir(root + "/" + split)
+            file_list = os.listdir(os.path.join(root, split))
             self.files[split] = file_list
 
     def __len__(self):
@@ -39,8 +38,8 @@ class Camvid(data.Dataset):
 
     def __getitem__(self, index):
         img_name = self.files[self.split][index]
-        img_path = self.root + "/" + self.split + "/" + img_name
-        lbl_path = self.root + "/" + self.split + "annot/" + img_name
+        img_path = os.path.join(self.root, self.split, img_name)
+        lbl_path = os.path.join(self.root, self.split + "annot", img_name)
 
         img = Image.open(img_path)
         lbl = Image.open(lbl_path)
