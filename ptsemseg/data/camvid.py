@@ -29,9 +29,8 @@ class Camvid(data.Dataset):
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         self.normalize = (normalize_mean, normalize_std)
 
-        for split in ["train", "test", "val"]:
-            file_list = os.listdir(os.path.join(root, split))
-            self.files[split] = file_list
+        file_list = os.listdir(os.path.join(root, self.split))
+        self.files[self.split] = file_list
 
     def __len__(self):
         return len(self.files[self.split])

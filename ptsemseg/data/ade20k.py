@@ -35,11 +35,10 @@ class ADE20K(data.Dataset):
         self.normalize = (normalize_mean, normalize_std)
         self.files = collections.defaultdict(list)
 
-        for split in ["training", "validation"]:
-            file_list = recursive_glob(
-                rootdir=os.path.join(self.root, "images", self.split), suffix=".jpg"
-            )
-            self.files[split] = file_list
+        file_list = recursive_glob(
+            rootdir=os.path.join(self.root, "images", self.split), suffix=".jpg"
+        )
+        self.files[self.split] = file_list
 
     def __len__(self):
         return len(self.files[self.split])

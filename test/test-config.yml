@@ -10,15 +10,27 @@
 #     normalize_mean: [0.485, 0.456, 0.406]
 #     normalize_std: [0.229, 0.224, 0.225]
 
-# vistas
+# # vistas
+# data:
+#     dataset: vistas
+#     train_split: train
+#     val_split: val
+#     img_rows: 448
+#     img_cols: 448
+
+#     path: /home/zhfeing/datasets/mapillary-vistas
+#     normalize_mean: [0.485, 0.456, 0.406]
+#     normalize_std: [0.229, 0.224, 0.225]
+
+# mit_sceneparsing_benchmark
 data:
-    dataset: vistas
+    dataset: mit_sceneparsing_benchmark
     train_split: train
     val_split: val
     img_rows: 448
     img_cols: 448
 
-    path: /home/zhfeing/datasets/mapillary-vistas
+    path: /home/zhfeing/datasets/mit_sceneparsing_benchmark
     normalize_mean: [0.485, 0.456, 0.406]
     normalize_std: [0.229, 0.224, 0.225]
 

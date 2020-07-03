@@ -45,18 +45,16 @@ class SUNRGBD(data.Dataset):
         self.anno_files = collections.defaultdict(list)
         self.cmap = self.color_map(normalized=False)
 
-        for split in ["train", "test"]:
-            file_list = sorted(recursive_glob(
-                rootdir=os.path.join(self.root, split),
-                suffix="jpg"
-            ))
-            self.files[split] = file_list
+        file_list = sorted(recursive_glob(
+            rootdir=os.path.join(self.root, self.split),
+            suffix="jpg"
+        ))
+        self.files[self.split] = file_list
 
-        for split in ["train", "test"]:
-            file_list = sorted(
-                recursive_glob(rootdir=os.path.join(self.root, "annot_{}".format(split)), suffix="png")
-            )
-            self.anno_files[split] = file_list
+        file_list = sorted(
+            recursive_glob(rootdir=os.path.join(self.root, "annot_{}".format(self.split)), suffix="png")
+        )
+        self.anno_files[self.split] = file_list
 
     def __len__(self):
         return len(self.files[self.split])

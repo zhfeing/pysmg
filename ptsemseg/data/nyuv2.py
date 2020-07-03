@@ -34,6 +34,7 @@ class NYUv2(data.Dataset):
         normalize_std=[0.229, 0.224, 0.225],
     ):
         self.root = root
+        self.split = split
         self.is_transform = is_transform
         self.n_classes = 14
         self.augmentations = augmentations
@@ -42,11 +43,8 @@ class NYUv2(data.Dataset):
         self.files = collections.defaultdict(list)
         self.cmap = self.color_map(normalized=False)
 
-        self.split = split
-
-        for split in ["train", "test"]:
-            file_list = recursive_glob(rootdir=os.path.join(self.root, split), suffix="png")
-            self.files[split] = file_list
+        file_list = recursive_glob(rootdir=os.path.join(self.root, self.split), suffix="png")
+        self.files[self.split] = file_list
 
     def __len__(self):
         return len(self.files[self.split])
