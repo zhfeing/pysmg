@@ -9,6 +9,10 @@ from segmentation_models_pytorch.linknet import Linknet
 from segmentation_models_pytorch.pan import PAN
 from segmentation_models_pytorch.pspnet import PSPNet
 from segmentation_models_pytorch.unet import Unet
+from ptsemseg.model.fcn import FCN8s, FCN16s, FCN32s
+from ptsemseg.model.frrn import FRRN
+from ptsemseg.model.icnet import ICNet
+from ptsemseg.model.segnet import SegNet
 
 
 def get_model(cfg, n_classes) -> Module:
@@ -28,7 +32,13 @@ def _get_model_instance(name):
             "linknet": Linknet,
             "pan": PAN,
             "pspnet": PSPNet,
-            "unet": Unet
+            "unet": Unet,
+            "fcn8s": FCN8s,
+            "fcn16s": FCN16s,
+            "fcn32s": FCN32s,
+            "frrn": FRRN,
+            "icnet": ICNet,
+            "segnet": SegNet
         }[name]
     except:
-        raise ("Model {} not available".format(name))
+        raise Exception("Model {} not available".format(name))

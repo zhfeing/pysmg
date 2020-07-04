@@ -61,10 +61,11 @@ class PascalVOC(data.Dataset):
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         self.normalize = (normalize_mean, normalize_std)
 
-        path = pjoin(self.root, "ImageSets", "Segmentation", self.split + ".txt")
-        file_list = tuple(open(path, "r"))
-        file_list = [id_.rstrip() for id_ in file_list]
-        self.files[self.split] = file_list
+        for split in ["train", "val", "trainval"]:
+            path = pjoin(self.root, "ImageSets", "Segmentation", split + ".txt")
+            file_list = tuple(open(path, "r"))
+            file_list = [id_.rstrip() for id_ in file_list]
+            self.files[split] = file_list
         self.setup_annotations()
 
     def __len__(self):

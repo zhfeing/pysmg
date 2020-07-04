@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from ptsemseg.data import get_dataset
 from ptsemseg.augmentations import get_composed_augmentations
-from ptsemseg.utils import make_deterministic
+from ptsemseg.utils import make_deterministic, str2bool, preserve_memory
 from ptsemseg.metrics import RunningScore
 from ptsemseg.model import get_model
 from ptsemseg.optimizers import get_optimizer
@@ -111,7 +111,7 @@ def train(cfg, model: torch.nn.Module, train_loader, val_loader, ckpt_dir):
     scheduler = get_scheduler(optimizer, cfg["training"]["lr_schedule"])
 
     loss_fn = get_loss_function(cfg)
-    logger.info("Using loss {}".format(loss_fn))
+    logger.info("Using loss {}".format(cfg["training"]["loss"]["name"]))
 
     start_iter = 0
     if cfg["training"]["resume"] is not None:
@@ -223,6 +223,7 @@ if __name__ == "__main__":
         default="configs/fcn8s_pascal.yml",
         help="Configuration file to use",
     )
+    parser.add_argument("--debug", type=str2bool, default=False)
     args = parser.parse_args()
 
     with open(args.config) as fp:
@@ -265,6 +266,9 @@ if __name__ == "__main__":
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
+    if args.debug:
+        cfg["training"]["n_workers"] = 0
+        cfg["validation"]["n_workers"] = 0
     train_loader, val_loader, n_classes = get_dataloader(cfg)
 
     logger.info("load dataset {} done, total classes: {}, train num: {}, val num: {}".format(

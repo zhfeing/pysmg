@@ -41,6 +41,7 @@ class MapillaryVistas(data.Dataset):
         self.images_base = os.path.join(self.root, self.split, "images")
         self.annotations_base = os.path.join(self.root, self.split, "labels")
 
+        print("collecting all {} images".format(split))
         self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".jpg")
 
         self.class_ids, self.class_names, self.class_colors = self.parse_config()

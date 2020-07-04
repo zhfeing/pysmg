@@ -6,7 +6,6 @@ from PIL import Image
 
 from torch.utils import data
 
-from ptsemseg.utils import recursive_glob
 from ptsemseg.data.transforms import default_transforms
 
 
@@ -30,22 +29,22 @@ class ADE20K(data.Dataset):
         self.is_transform = is_transform
         self.augmentations = augmentations
         self.n_classes = 150
+        self.ignore_index = 250
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         # self.mean = np.array([104.00699, 116.66877, 122.67892])
         self.normalize = (normalize_mean, normalize_std)
         self.files = collections.defaultdict(list)
 
-        file_list = recursive_glob(
-            rootdir=os.path.join(self.root, "images", self.split), suffix=".jpg"
-        )
-        self.files[self.split] = file_list
+        self.img_list = os.listdir(os.path.join(self.root, "images", self.split))
+        self.len = len(self.img_list)
 
     def __len__(self):
-        return len(self.files[self.split])
+        return self.len
 
     def __getitem__(self, index):
-        img_path = self.files[self.split][index].rstrip()
-        lbl_path = img_path[:-4] + "_seg.png"
+        img_path = os.path.join(self.root, "images", self.split, self.img_list[index])
+        seg_file = self.img_list[index][:-4] + ".png"
+        lbl_path = os.path.join(self.root, "annotations", self.split, seg_file)
 
         img = Image.open(img_path)
         lbl = Image.open(lbl_path)
@@ -55,21 +54,14 @@ class ADE20K(data.Dataset):
 
         if self.is_transform:
             img, lbl = self.transform(img, lbl)
-
+        lbl -= 1
+        lbl[lbl == -1] = self.ignore_index
+        lbl[lbl == 249] = self.ignore_index
         return img, lbl
 
     def transform(self, img, lbl):
-        lbl = self.encode_segmap(np.array(lbl))
-        lbl = Image.fromarray(lbl)
         img, lbl = default_transforms(img, lbl, self.normalize, self.img_size)
         return img, lbl
-
-    def encode_segmap(self, mask):
-        # Refer : http://groups.csail.mit.edu/vision/datasets/ADE20K/code/loadAde20K.m
-        mask = mask.astype(int)
-        label_mask = np.zeros((mask.shape[0], mask.shape[1]))
-        label_mask = (mask[:, :, 0] / 10.0) * 256 + mask[:, :, 1]
-        return np.array(label_mask, dtype=np.uint8)
 
     def decode_segmap(self, temp, plot=False):
         # TODO:(@meetshah1995)

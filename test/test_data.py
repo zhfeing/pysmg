@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 
 from ptsemseg.data import get_dataset
 from ptsemseg.augmentations import get_composed_augmentations
+from ptsemseg.utils import make_deterministic, str2bool, preserve_memory
 
 
 def get_dataloader(cfg):
@@ -70,10 +71,11 @@ if __name__ == "__main__":
         default="configs/fcn8s_pascal.yml",
         help="Configuration file to use",
     )
+    parser.add_argument("--debug", type=str2bool, default=False)
     args = parser.parse_args()
 
     with open(args.config) as fp:
         cfg = yaml.load(fp, Loader=yaml.SafeLoader)
     train_loader, val_loader, n_classes = get_dataloader(cfg)
-    for img, lbl in val_loader:
+    for img, lbl in train_loader:
         print(torch.unique(lbl))

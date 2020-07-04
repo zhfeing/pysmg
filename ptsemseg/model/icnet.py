@@ -16,11 +16,6 @@ from ptsemseg.model.utils import (
 __all__ = ["ICNet"]
 
 
-icnet_specs = {
-    "cityscapes": {"n_classes": 19, "input_size": (1025, 2049), "block_config": [3, 4, 6, 3]}
-}
-
-
 class ICNet(nn.Module):
 
     """
@@ -36,10 +31,9 @@ class ICNet(nn.Module):
 
     def __init__(
         self,
-        n_classes=19,
+        classes=19,
         block_config=[3, 4, 6, 3],
         input_size=(1025, 2049),
-        version=None,
         is_batchnorm=True,
     ):
 
@@ -47,11 +41,9 @@ class ICNet(nn.Module):
 
         bias = not is_batchnorm
 
-        self.block_config = (
-            icnet_specs[version]["block_config"] if version is not None else block_config
-        )
-        self.n_classes = icnet_specs[version]["n_classes"] if version is not None else n_classes
-        self.input_size = icnet_specs[version]["input_size"] if version is not None else input_size
+        self.block_config = block_config
+        self.n_classes = classes
+        self.input_size = input_size
 
         # Encoder
         self.convbnrelu1_1 = Conv2DBatchNormRelu(

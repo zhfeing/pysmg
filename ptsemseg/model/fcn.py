@@ -9,10 +9,10 @@ __all__ = ["FCN32s", "FCN16s", "FCN8s"]
 
 # FCN32s
 class FCN32s(nn.Module):
-    def __init__(self, n_classes=21, learned_billinear=False):
+    def __init__(self, classes=21, learned_billinear=False):
         super(FCN32s, self).__init__()
         self.learned_billinear = learned_billinear
-        self.n_classes = n_classes
+        self.n_classes = classes
         # self.loss = functools.partial(cross_entropy2d, size_average=False)
 
         self.conv_block1 = nn.Sequential(
@@ -83,7 +83,7 @@ class FCN32s(nn.Module):
 
         score = self.classifier(conv5)
 
-        out = F.upsample(score, x.size()[2:])
+        out = F.interpolate(score, x.size()[2:])
 
         return out
 
@@ -120,10 +120,10 @@ class FCN32s(nn.Module):
 
 
 class FCN16s(nn.Module):
-    def __init__(self, n_classes=21, learned_billinear=False):
+    def __init__(self, classes=21, learned_billinear=False):
         super(FCN16s, self).__init__()
         self.learned_billinear = learned_billinear
-        self.n_classes = n_classes
+        self.n_classes = classes
         # self.loss = functools.partial(cross_entropy2d, size_average=False)
 
         self.conv_block1 = nn.Sequential(
@@ -198,9 +198,9 @@ class FCN16s(nn.Module):
         score = self.classifier(conv5)
         score_pool4 = self.score_pool4(conv4)
 
-        score = F.upsample(score, score_pool4.size()[2:])
+        score = F.interpolate(score, score_pool4.size()[2:])
         score += score_pool4
-        out = F.upsample(score, x.size()[2:])
+        out = F.interpolate(score, x.size()[2:])
 
         return out
 
@@ -239,10 +239,10 @@ class FCN16s(nn.Module):
 
 # FCN 8s
 class FCN8s(nn.Module):
-    def __init__(self, n_classes=21, learned_billinear=True):
+    def __init__(self, classes=21, learned_billinear=True):
         super(FCN8s, self).__init__()
         self.learned_billinear = learned_billinear
-        self.n_classes = n_classes
+        self.n_classes = classes
         # self.loss = functools.partial(cross_entropy2d, size_average=False)
 
         self.conv_block1 = nn.Sequential(
@@ -349,11 +349,11 @@ class FCN8s(nn.Module):
         else:
             score_pool4 = self.score_pool4(conv4)
             score_pool3 = self.score_pool3(conv3)
-            score = F.upsample(score, score_pool4.size()[2:])
+            score = F.interpolate(score, score_pool4.size()[2:])
             score += score_pool4
-            score = F.upsample(score, score_pool3.size()[2:])
+            score = F.interpolate(score, score_pool3.size()[2:])
             score += score_pool3
-            out = F.upsample(score, x.size()[2:])
+            out = F.interpolate(score, x.size()[2:])
 
         return out
 

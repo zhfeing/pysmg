@@ -6,7 +6,7 @@
 #     img_rows: 448
 #     img_cols: 448
 
-#     path: /home/zhfeing/datasets/ADE20K_2016_07_26
+#     path: /home/zhfeing/datasets/ADEChallengeData2016
 #     normalize_mean: [0.485, 0.456, 0.406]
 #     normalize_std: [0.229, 0.224, 0.225]
 
@@ -39,7 +39,7 @@ training:
         rotate: 10
         hflip: 0.5
     batch_size: 64
-    n_workers: 32
+    n_workers: 0
     seed: 1
     optimizer:
         name: 'sgd'
@@ -63,7 +63,7 @@ training:
 
 validation:
     batch_size: 32
-    n_workers: 8
+    n_workers: 0
 
 # unet
 model:

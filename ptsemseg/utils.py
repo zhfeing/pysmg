@@ -2,8 +2,7 @@
 Misc Utility functions
 """
 import os
-import logging
-import datetime
+import argparse
 import numpy as np
 from PIL import Image
 import random
@@ -240,3 +239,30 @@ def make_deterministic(seed):
     torch.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def str2bool(v):
+    if v.lower() in ("true", "yes", "t", "y"):
+        return True
+    elif v.lower() in ("false", "no", "f", "n"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Unsupported value encountered.")
+
+
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def preserve_memory():
+    try:
+        import cupy
+        for i in range(torch.cuda.device_count()):
+            device = cupy.cuda.Device(i)
+            avaliable_mem = device.mem_info[0]
+            alloc_mem = int(avaliable_mem * 0.95 / 4)
+            x = torch.empty(alloc_mem).to(torch.device("cuda: {}".format(i)))
+            del x
+    except ImportError:
+        print("No cupy found, memory cannot be perserved")
+

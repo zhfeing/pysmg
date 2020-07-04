@@ -1,0 +1,133 @@
+# # pascal
+# data:
+#     dataset: pascal
+#     train_split: train_aug
+#     val_split: train_aug_val
+#     img_rows: 448
+#     img_cols: 448
+#     path: /home/zhfeing/datasets/voc/VOC2012/
+#     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+#     normalize_mean: [0.485, 0.456, 0.406]
+#     normalize_std: [0.229, 0.224, 0.225]
+
+# # camvid
+# data:
+#     dataset: camvid
+#     train_split: train
+#     val_split: val
+#     img_rows: 448
+#     img_cols: 448
+
+#     path: /home/zhfeing/datasets/camvid/CamVid11
+#     normalize_mean: [0.485, 0.456, 0.406]
+#     normalize_std: [0.229, 0.224, 0.225]
+
+# # cityscapes
+# data:
+#     dataset: cityscapes
+#     train_split: train
+#     val_split: val
+#     img_rows: 448
+#     img_cols: 448
+#     path: /home/zhfeing/datasets/cityscape
+
+# # nyuv2
+# data:
+#     dataset: nyuv2
+#     train_split: train
+#     val_split: test
+#     img_rows: 448
+#     img_cols: 448
+#     path: /home/zhfeing/datasets/nyuv2
+
+# # sunrgbd
+# data:
+#     dataset: sunrgbd
+#     train_split: train
+#     val_split: test
+#     img_rows: 448
+#     img_cols: 448
+#     path: /home/zhfeing/datasets/sunrgbd
+
+
+# # mit_sceneparsing_benchmark
+# data:
+#     dataset: mit_sceneparsing_benchmark
+#     train_split: train
+#     val_split: val
+#     img_rows: 448
+#     img_cols: 448
+
+#     path: /home/zhfeing/datasets/mit_sceneparsing_benchmark
+#     normalize_mean: [0.485, 0.456, 0.406]
+#     normalize_std: [0.229, 0.224, 0.225]
+
+# ade20k
+data:
+    dataset: ade20k
+    train_split: train
+    val_split: val
+    img_rows: 448
+    img_cols: 448
+
+    path: /home/zhfeing/datasets/ADEChallengeData2016
+
+# # vistas
+# data:
+#     dataset: vistas
+#     train_split: train
+#     val_split: val
+#     img_rows: 448
+#     img_cols: 448
+
+#     path: /home/zhfeing/datasets/mapillary-vistas
+#     normalize_mean: [0.485, 0.456, 0.406]
+#     normalize_std: [0.229, 0.224, 0.225]
+
+training:
+    augmentations:
+        rotate: 10
+        hflip: 0.5
+    batch_size: 8
+    n_workers: 4
+    seed: 1
+    optimizer:
+        name: 'sgd'
+        lr: 1.0e-3
+        weight_decay: 5.0e-4
+        momentum: 0.99
+    lr_schedule: 
+        name: constant_lr
+        # name: multi_step
+        # milestones: [900, 5000]
+        # warmup_iters: 100
+        # warmup_mode: linear
+        # warmup_factor: 0.2
+    loss:
+        name: cross_entropy
+    resume:
+    print_interval: 1
+    train_iters: 8000
+    val_interval: 100
+
+validation:
+    batch_size: 8
+    n_workers: 4
+
+# # unet
+# model:
+#     arch: unet
+#     encoder_name: resnet34
+#     encoder_depth: 5
+#     encoder_weights: imagenet
+#     decoder_use_batchnorm: True
+#     decoder_channels: [256, 128, 64, 32, 16]
+#     decoder_attention_type:
+#     in_channels: 3
+#     activation:
+#     aux_params:
+
+# fcn
+model:
+    arch: fcn8s
+    learned_billinear: False

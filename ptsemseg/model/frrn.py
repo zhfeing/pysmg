@@ -30,9 +30,9 @@ class FRRN(nn.Module):
     2) TF implementation by @kiwonjoon: https://github.com/hiwonjoon/tf-frrn
     """
 
-    def __init__(self, n_classes=21, model_type="B", group_norm=False, n_groups=16):
+    def __init__(self, classes=21, model_type="B", group_norm=False, n_groups=16):
         super(FRRN, self).__init__()
-        self.n_classes = n_classes
+        self.n_classes = classes
         self.model_type = model_type
         self.group_norm = group_norm
         self.n_groups = n_groups
@@ -121,7 +121,6 @@ class FRRN(nn.Module):
         )
 
     def forward(self, x):
-
         # pass to initial conv
         x = self.conv1(x)
 
