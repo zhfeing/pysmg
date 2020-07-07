@@ -6,6 +6,7 @@ import copy
 import time
 import tqdm
 import logging
+import traceback
 import time
 from typing import Dict, Any, Callable
 
@@ -25,6 +26,14 @@ from ptsemseg.dataloader import get_dataloader
 
 
 class CUDAOutOfMemory(Exception):
+    pass
+
+
+class CodeBugs(Exception):
+    pass
+
+
+class CUDAMemoryNotEnoughForModel(Exception):
     pass
 
 
@@ -236,7 +245,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
     else:
         logger = logging.getLogger(__name__)
 
-    logger.info("Start running with config: {}".format(cfg))
+    logger.info("Start running with config: \n{}".format(yaml.dump(cfg)))
     logger.info("RUNDIR: {}".format(logdir))
 
     make_deterministic(seed)
@@ -257,26 +266,33 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
         len(train_loader.dataset),
         len(val_loader.dataset)
     ))
-
-    model = get_model(cfg, n_classes).to(device)
+    try:
+        model = get_model(cfg, n_classes).to(device)
+    except RuntimeError as e:
+        logger.error("Model too huge to move to gpu, exception: {}\n".format(e))
+        raise CUDAMemoryNotEnoughForModel
     success = False
     try:
         train(cfg, model, train_loader, val_loader, ckpt_dir, logger, writer, device, logdir)
         success = True
-    except RuntimeError as e:
-        if e.args[0].find("CUDA out of memory") >= 0:
+    except Exception as e:
+        if isinstance(e, RuntimeError) and e.args[0].find("CUDA out of memory") >= 0:
             logger.warning("Running out of memory, exception: {}\n".format(e))
             raise CUDAOutOfMemory
         else:
-            raise
+            tb = traceback.format_exc()
+            logger.error("Found code bugs, exception:\n{} \ntrackback:\n{}".format(e, tb))
+            raise CodeBugs
     finally:
         torch.cuda.empty_cache()
         log_dir = writer.log_dir
-        writer.close()
         if not success:
+            logger.info("Deleting failed tensorboard logger...")
+            writer.close()
+            # time.sleep(1.5)
             shutil.rmtree(log_dir)
-        # for tb
-        time.sleep(1)
+            time.sleep(1.5)
+            logger.info("Deleting failed tensorboard logger done")
 
 
 if __name__ == "__main__":

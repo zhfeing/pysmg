@@ -708,8 +708,8 @@ def get_interp_size(input, s_factor=1, z_factor=1):  # for caffe
     ori_w = (ori_w - 1) / s_factor + 1
 
     # zoom (z_factor >= 1)
-    ori_h = ori_h + (ori_h - 1) * (z_factor - 1)
-    ori_w = ori_w + (ori_w - 1) * (z_factor - 1)
+    ori_h = ori_h + ori_h * (z_factor - 1)
+    ori_w = ori_w + ori_w * (z_factor - 1)
 
     resize_shape = (int(ori_h), int(ori_w))
     return resize_shape

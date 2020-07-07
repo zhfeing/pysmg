@@ -6,8 +6,6 @@ import os
 import traceback
 from typing import Dict, Any
 
-import torch
-
 import train
 from ptsemseg.utils import str2bool
 
@@ -81,6 +79,7 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
     worker = min(bs, 32)
     seed = running_cfg["seed"]
     flag = True
+    cfg_failed = False
     while flag:
         try:
             train_cfg["training"]["batch_size"] = bs
@@ -110,9 +109,32 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
             flag = False
         except train.CUDAOutOfMemory:
             bs //= 2
+            worker = min(bs, 32)
             logger.warning("Model generator is out of memory, trying to reduce batch size to {}".format(bs))
             if bs < 1:
-                logger.error("Even when using batchsize=1 memory is still not enough, skiping this config")
+                logger.error("Even when using batchsize=1 memory is still not enough, skipping this config")
+                flag = False
+                cfg_failed = True
+        except train.CUDAMemoryNotEnoughForModel:
+            logger.error("Gpu memory is too small, skipping this config")
+            flag = False
+            cfg_failed = True
+        except train.CodeBugs:
+            logger.error("Found code bugs, skipping this config")
+            flag = False
+            cfg_failed = True
+        except Exception as e:
+            tb = traceback.format_exc()
+            logger.error("Run time error: {},\ntraceback: {}".format(e, tb))
+            cfg_failed = True
+            exit()
+        finally:
+            if cfg_failed:
+                failed_list_name = os.path.join(args.log_dir, "failed_list.txt")
+                mode = "a" if os.path.isfile(failed_list_name) else "w"
+                with open(failed_list_name, mode) as file:
+                    file.write(train_cfg)
+                    file.write("\n--------------------------------------------------\n\n")
 
 
 if __name__ == "__main__":

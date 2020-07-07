@@ -118,41 +118,41 @@ encoders:
     timm-efficientnet-l2: noisy-student
 
 models:
-    # fcn
-    fcn8s:
-        customizable_encoder: False
-        arch: fcn8s
-        learned_billinear: False
-    fcn16s:
-        customizable_encoder: False
-        arch: fcn16s
-        learned_billinear: False
-    fcn32s:
-        customizable_encoder: False
-        arch: fcn32s
-        learned_billinear: False
-    # frrn
-    frrn_a:
-        customizable_encoder: False
-        arch: frrn_a
-        model_type: A
-        group_norm: False
-        n_groups: 16
-    frrn_b:
-        customizable_encoder: False
-        arch: frrn_b
-        model_type: B
-        group_norm: False
-        n_groups: 16
-    icnet:
-        customizable_encoder: False
-        arch: icnet
-        block_config: [3, 4, 6, 3]
-        is_batchnorm: True
-    segnet:
-        customizable_encoder: False
-        arch: segnet
-        is_unpooling: True
+    # # fcn
+    # fcn8s:
+    #     customizable_encoder: False
+    #     arch: fcn8s
+    #     learned_billinear: False
+    # fcn16s:
+    #     customizable_encoder: False
+    #     arch: fcn16s
+    #     learned_billinear: False
+    # fcn32s:
+    #     customizable_encoder: False
+    #     arch: fcn32s
+    #     learned_billinear: False
+    # # frrn
+    # frrn_a:
+    #     customizable_encoder: False
+    #     arch: frrn_a
+    #     model_type: A
+    #     group_norm: False
+    #     n_groups: 16
+    # frrn_b:
+    #     customizable_encoder: False
+    #     arch: frrn_b
+    #     model_type: B
+    #     group_norm: False
+    #     n_groups: 16
+    # icnet:
+    #     customizable_encoder: False
+    #     arch: icnet
+    #     block_config: [3, 4, 6, 3]
+    #     is_batchnorm: True
+    # segnet:
+    #     customizable_encoder: False
+    #     arch: segnet
+    #     is_unpooling: True
     unet:
         customizable_encoder: True
         arch: unet
