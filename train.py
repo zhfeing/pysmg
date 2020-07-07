@@ -173,7 +173,12 @@ def train(
                 }
                 save_path = os.path.join(
                     ckpt_dir,
-                    "{}_{}_iter_{}_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"], i),
+                    "arch-{}-encoder-{}-dataset-{}-iter-{}.pkl".format(
+                        cfg["model"]["arch"],
+                        cfg["model"]["encoder_name"],
+                        cfg["data"]["dataset"],
+                        i
+                    ),
                 )
                 torch.save(state, save_path)
 
@@ -182,7 +187,11 @@ def train(
                     save_path = os.path.join(
                         logdir,
                         "ckpt",
-                        "{}_{}_best_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"]),
+                        "arch-{}-encoder-{}-dataset-{}-best.pkl".format(
+                            cfg["model"]["arch"],
+                            cfg["model"]["encoder_name"],
+                            cfg["data"]["dataset"]
+                        ),
                     )
                     torch.save(state, save_path)
 

@@ -135,8 +135,8 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
         except Exception as e:
             tb = traceback.format_exc()
             logger.error("Run time error: {},\ntraceback: {}".format(e, tb))
+            flag = False
             cfg_failed = True
-            exit()
         finally:
             if cfg_failed:
                 failed_list_name = os.path.join(args.log_dir, "failed_list.txt")
