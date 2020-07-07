@@ -6,8 +6,10 @@ import os
 import traceback
 from typing import Dict, Any
 
+import torch
+
 import train
-from ptsemseg.utils import str2bool
+from ptsemseg.utils import str2bool, preserve_memory
 
 
 def get_dataset_iter(datasets_cfg: Dict[str, Any]):
@@ -64,7 +66,14 @@ def generate_models(global_config: str, cfg_filepath: str):
     for cfg in get_config_iter(global_config):
         cfg["training"] = global_config["training"]
         cfg["validation"] = dict()
+
+        if args.gpu_preserve:
+            logger.info("Preserving memory...")
+            preserve_memory()
+            logger.info("Preserving memory done")
+
         train_with_cfg(cfg, global_config["running_args"], cfg_filepath)
+        torch.cuda.empty_cache()
 
 
 def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_filepath: str):
@@ -102,7 +111,7 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
             train.main(
                 cfg_filepath=cfg_filepath,
                 logdir=args.log_dir,
-                gpu_preserve=args.gpu_preserve,
+                gpu_preserve=False,
                 debug=args.debug
             )
             logger.info("Training Done\n\n")
@@ -111,8 +120,8 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
             bs //= 2
             worker = min(bs, 32)
             logger.warning("Model generator is out of memory, trying to reduce batch size to {}".format(bs))
-            if bs < 1:
-                logger.error("Even when using batchsize=1 memory is still not enough, skipping this config")
+            if bs < 2 * torch.cuda.device_count():
+                logger.error("Minimum bathsize reached, skipping this config")
                 flag = False
                 cfg_failed = True
         except train.CUDAMemoryNotEnoughForModel:
