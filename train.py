@@ -150,7 +150,7 @@ def train(
                 logger.info("start evaling")
                 running_metrics_val, val_loss_meter = eval(model, val_loader, loss_fn, device)
 
-                writer.add_scalar("loss/val_loss", val_loss_meter.avg, isinstance)
+                writer.add_scalar("loss/val_loss", val_loss_meter.avg, i)
                 logger.info("Iter %d Loss: %.4f" % (i, val_loss_meter.avg))
 
                 score, class_iou = running_metrics_val.get_scores()
