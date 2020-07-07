@@ -133,7 +133,7 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
                 failed_list_name = os.path.join(args.log_dir, "failed_list.txt")
                 mode = "a" if os.path.isfile(failed_list_name) else "w"
                 with open(failed_list_name, mode) as file:
-                    file.write(train_cfg)
+                    file.write(yaml.dump(train_cfg))
                     file.write("\n--------------------------------------------------\n\n")
 
 

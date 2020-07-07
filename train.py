@@ -133,39 +133,39 @@ def train(
 
             time_meter.update(time.time() - start_ts)
 
-            if (i + 1) % cfg["training"]["print_interval"] == 0:
+            if i % cfg["training"]["print_interval"] == 0:
                 fmt_str = "Iter [{:d}/{:d}]  Loss: {:.4f} Lr: {} Time/Image: {:.4f}"
                 print_str = fmt_str.format(
-                    i + 1,
+                    i,
                     cfg["training"]["train_iters"],
                     loss.item(),
                     scheduler.get_lr(),
                     time_meter.avg / cfg["training"]["batch_size"]
                 )
                 logger.info(print_str)
-                writer.add_scalar("loss/train_loss", loss.item(), i + 1)
+                writer.add_scalar("loss/train_loss", loss.item(), i)
                 time_meter.reset()
 
-            if (i + 1) % cfg["training"]["val_interval"] == 0 or (i + 1) == cfg["training"]["train_iters"]:
+            if i % cfg["training"]["val_interval"] == 0 or i == cfg["training"]["train_iters"]:
                 logger.info("start evaling")
                 running_metrics_val, val_loss_meter = eval(model, val_loader, loss_fn, device)
 
-                writer.add_scalar("loss/val_loss", val_loss_meter.avg, i + 1)
-                logger.info("Iter %d Loss: %.4f" % (i + 1, val_loss_meter.avg))
+                writer.add_scalar("loss/val_loss", val_loss_meter.avg, isinstance)
+                logger.info("Iter %d Loss: %.4f" % (i, val_loss_meter.avg))
 
                 score, class_iou = running_metrics_val.get_scores()
                 for k, v in score.items():
                     logger.info("{}: {}".format(k, v))
-                    writer.add_scalar("val_metrics/{}".format(k), v, i + 1)
+                    writer.add_scalar("val_metrics/{}".format(k), v, i)
 
                 for k, v in class_iou.items():
                     logger.info("{}: {}".format(k, v))
-                    writer.add_scalar("val_metrics/cls_{}".format(k), v, i + 1)
+                    writer.add_scalar("val_metrics/cls_{}".format(k), v, i)
 
                 # save ckpt
                 iou = score["Mean IoU : \t"]
                 state = {
-                    "iter": i + 1,
+                    "iter": i,
                     "model_state": model.state_dict(),
                     "optimizer_state": optimizer.state_dict(),
                     "scheduler_state": scheduler.state_dict(),
@@ -173,7 +173,7 @@ def train(
                 }
                 save_path = os.path.join(
                     ckpt_dir,
-                    "{}_{}_iter_{}_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"], i + 1),
+                    "{}_{}_iter_{}_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"], i),
                 )
                 torch.save(state, save_path)
 
@@ -186,7 +186,7 @@ def train(
                     )
                     torch.save(state, save_path)
 
-            if (i + 1) == cfg["training"]["train_iters"]:
+            if i == cfg["training"]["train_iters"]:
                 flag = False
                 break
 
@@ -284,7 +284,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
             logger.error("Found code bugs, exception:\n{} \ntrackback:\n{}".format(e, tb))
             raise CodeBugs
     finally:
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
         log_dir = writer.log_dir
         if not success:
             logger.info("Deleting failed tensorboard logger...")

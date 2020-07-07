@@ -153,7 +153,61 @@ models:
     #     customizable_encoder: False
     #     arch: segnet
     #     is_unpooling: True
-    unet:
+    DeepLabV3:
+        customizable_encoder: True
+        arch: deeplabv3
+        encoder_depth: 5
+        decoder_channels: 256
+        activation:
+        upsampling: 8
+        aux_params:
+    DeepLabV3Plus:
+        customizable_encoder: True
+        arch: deeplabv3+
+        encoder_depth: 5
+        encoder_output_stride: 16
+        decoder_channels: 256
+        decoder_atrous_rates: [12, 24, 36]
+        activation:
+        upsampling: 4
+        aux_params:
+    FPN:
+        customizable_encoder: True
+        arch: fpn
+        encoder_depth: 5
+        decoder_pyramid_channels: 256
+        decoder_segmentation_channels: 128
+        decoder_merge_policy: add
+        decoder_dropout: 0.2
+        activation:
+        upsampling: 4
+        aux_params:
+    Linknet:
+        customizable_encoder: True
+        arch: linknet
+        encoder_depth: 5
+        decoder_use_batchnorm: True
+        activation:
+        aux_params:
+    PAN:
+        customizable_encoder: True
+        arch: pan
+        encoder_dilation: True
+        decoder_channels: 32
+        activation:
+        upsampling: 4
+        aux_params:
+    PSPNet:
+        customizable_encoder: True
+        arch: pspnet
+        encoder_depth: 3
+        psp_out_channels: 512
+        psp_use_batchnorm: True
+        psp_dropout: 0.2
+        activation:
+        upsampling: 8
+        aux_params:
+    UNet:
         customizable_encoder: True
         arch: unet
         encoder_depth: 5
@@ -162,6 +216,7 @@ models:
         decoder_attention_type:
         activation:
         aux_params:
+
 
 training:
     augmentations:
