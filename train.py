@@ -6,13 +6,14 @@ import copy
 import time
 import tqdm
 import logging
+import time
+from typing import Dict, Any, Callable
 
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from ptsemseg.data import get_dataset
-from ptsemseg.augmentations import get_composed_augmentations
 from ptsemseg.utils import make_deterministic, str2bool, preserve_memory
 from ptsemseg.metrics import RunningScore
 from ptsemseg.model import get_model
@@ -20,62 +21,19 @@ from ptsemseg.optimizers import get_optimizer
 from ptsemseg.schedulers import get_scheduler
 from ptsemseg.loss import get_loss_function
 from ptsemseg.metrics import AverageMeter
+from ptsemseg.dataloader import get_dataloader
 
 
-def get_dataloader(cfg):
-    # Setup Augmentations
-    augmentations = cfg["training"].get("augmentations", None)
-    data_aug = get_composed_augmentations(augmentations)
-
-    # Setup Dataloader
-    dataset = get_dataset(cfg["data"]["dataset"])
-    data_path = cfg["data"]["path"]
-
-    dataloader_args = cfg["data"].copy()
-    dataloader_args.pop('dataset')
-    dataloader_args.pop('train_split')
-    dataloader_args.pop('val_split')
-    dataloader_args.pop('img_rows')
-    dataloader_args.pop('img_cols')
-    dataloader_args.pop('path')
-
-    train_dataset = dataset(
-        data_path,
-        is_transform=True,
-        split=cfg["data"]["train_split"],
-        img_size=(cfg["data"]["img_rows"], cfg["data"]["img_cols"]),
-        augmentations=data_aug,
-        **dataloader_args
-    )
-
-    val_dataset = dataset(
-        data_path,
-        is_transform=True,
-        split=cfg["data"]["val_split"],
-        img_size=(cfg["data"]["img_rows"], cfg["data"]["img_cols"]),
-        **dataloader_args
-    )
-
-    n_classes = train_dataset.n_classes
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=cfg["training"]["batch_size"],
-        num_workers=cfg["training"]["n_workers"],
-        shuffle=True,
-        pin_memory=True
-    )
-
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=cfg["validation"]["batch_size"],
-        num_workers=cfg["validation"]["n_workers"],
-        shuffle=False,
-        pin_memory=True
-    )
-    return train_loader, val_loader, n_classes
+class CUDAOutOfMemory(Exception):
+    pass
 
 
-def eval(model, val_loader, loss_fn):
+def eval(
+    model: torch.nn.Module,
+    val_loader: DataLoader,
+    loss_fn: Callable[[Tensor, Tensor], Tensor],
+    device: torch.device
+):
     # Setup Metrics
     n_classes = val_loader.dataset.n_classes
     val_loss_meter = AverageMeter()
@@ -97,9 +55,18 @@ def eval(model, val_loader, loss_fn):
     return running_metrics_val, val_loss_meter
 
 
-def train(cfg, model: torch.nn.Module, train_loader, val_loader, ckpt_dir):
-    model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
-    model = model.cuda()
+def train(
+    cfg: Dict[str, Any],
+    model: torch.nn.Module,
+    train_loader: DataLoader,
+    val_loader: DataLoader,
+    ckpt_dir: str,
+    logger: logging.Logger,
+    writer: torch.utils.tensorboard.SummaryWriter,
+    device: torch.device,
+    logdir: str
+):
+    model = torch.nn.DataParallel(model)
     # Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
     optimizer_params = copy.deepcopy(cfg["training"]["optimizer"])
@@ -172,7 +139,7 @@ def train(cfg, model: torch.nn.Module, train_loader, val_loader, ckpt_dir):
 
             if (i + 1) % cfg["training"]["val_interval"] == 0 or (i + 1) == cfg["training"]["train_iters"]:
                 logger.info("start evaling")
-                running_metrics_val, val_loss_meter = eval(model, val_loader, loss_fn)
+                running_metrics_val, val_loss_meter = eval(model, val_loader, loss_fn, device)
 
                 writer.add_scalar("loss/val_loss", val_loss_meter.avg, i + 1)
                 logger.info("Iter %d Loss: %.4f" % (i + 1, val_loss_meter.avg))
@@ -204,7 +171,8 @@ def train(cfg, model: torch.nn.Module, train_loader, val_loader, ckpt_dir):
                 if iou >= best_iou:
                     best_iou = iou
                     save_path = os.path.join(
-                        writer.file_writer.get_logdir(),
+                        logdir,
+                        "ckpt",
                         "{}_{}_best_model.pkl".format(cfg["model"]["arch"], cfg["data"]["dataset"]),
                     )
                     torch.save(state, save_path)
@@ -214,64 +182,76 @@ def train(cfg, model: torch.nn.Module, train_loader, val_loader, ckpt_dir):
                 break
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="config")
-    parser.add_argument(
-        "--config",
-        nargs="?",
-        type=str,
-        default="configs/fcn8s_pascal.yml",
-        help="Configuration file to use",
-    )
-    parser.add_argument("--debug", type=str2bool, default=False)
-    args = parser.parse_args()
-
-    with open(args.config) as fp:
+def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
+    with open(cfg_filepath) as fp:
         cfg = yaml.load(fp, Loader=yaml.SafeLoader)
 
+    if debug:
+        cfg["training"]["n_workers"] = 0
+        cfg["validation"]["n_workers"] = 0
+
     seed = cfg["training"]["seed"]
-    logdir = os.path.join(
-        "logs",
-        os.path.basename(args.config)[:-4],
-        str(seed)
-    )
 
     ckpt_dir = os.path.join(logdir, "ckpt")
     os.makedirs(logdir, exist_ok=True)
     os.makedirs(ckpt_dir, exist_ok=True)
 
-    writer = SummaryWriter(log_dir=logdir, flush_secs=1)
+    if "encoder_name" in cfg["model"].keys():
+        formater = (
+            cfg["model"]["arch"],
+            cfg["model"]["encoder_name"],
+            cfg["data"]["dataset"]
+        )
+    else:
+        formater = (cfg["model"]["arch"], None, cfg["data"]["dataset"])
 
-    shutil.copy(args.config, logdir)
+    writer = SummaryWriter(
+        log_dir=os.path.join(
+            logdir,
+            "tf-board-logs",
+            "arch-{}-encoder-{}-data-{}".format(*formater)
+        ),
+        flush_secs=1
+    )
+
+    try:
+        shutil.copy(cfg_filepath, logdir)
+    except shutil.SameFileError:
+        pass
 
     # get logger
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    file_handler = logging.FileHandler(os.path.join(logdir, "train.log"), "w")
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    logger.propagate = False
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    console.setFormatter(formatter)
-    logger.addHandler(console)
+    if __name__ == "__main__":
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+        file_handler = logging.FileHandler(os.path.join(logdir, "train.log"), "w")
+        file_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        logger.propagate = False
+        console = logging.StreamHandler()
+        console.setLevel(logging.INFO)
+        console.setFormatter(formatter)
+        logger.addHandler(console)
+    else:
+        logger = logging.getLogger(__name__)
 
-    logger.info("start training")
+    logger.info("Start running with config: {}".format(cfg))
     logger.info("RUNDIR: {}".format(logdir))
 
     make_deterministic(seed)
     logger.info("set seed : {}".format(seed))
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    if gpu_preserve:
+        logger.info("Preserving memory...")
+        preserve_memory()
+        logger.info("Preserving memory done")
 
-    if args.debug:
-        cfg["training"]["n_workers"] = 0
-        cfg["validation"]["n_workers"] = 0
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    logger.info("Loading dataset...")
     train_loader, val_loader, n_classes = get_dataloader(cfg)
-
-    logger.info("load dataset {} done, total classes: {}, train num: {}, val num: {}".format(
+    logger.info("Load dataset {} done, total classes: {}, train num: {}, val num: {}".format(
         cfg["data"]["dataset"],
         n_classes,
         len(train_loader.dataset),
@@ -279,4 +259,35 @@ if __name__ == "__main__":
     ))
 
     model = get_model(cfg, n_classes).to(device)
-    train(cfg, model, train_loader, val_loader, ckpt_dir)
+    success = False
+    try:
+        train(cfg, model, train_loader, val_loader, ckpt_dir, logger, writer, device, logdir)
+        success = True
+    except RuntimeError as e:
+        if e.args[0].find("CUDA out of memory") >= 0:
+            logger.warning("Running out of memory, exception: {}\n".format(e))
+            raise CUDAOutOfMemory
+        else:
+            raise
+    finally:
+        torch.cuda.empty_cache()
+        log_dir = writer.log_dir
+        writer.close()
+        if not success:
+            shutil.rmtree(log_dir)
+        # for tb
+        time.sleep(1)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="config")
+    parser.add_argument("--config", nargs="?", type=str, default="configs/fcn8s_pascal.yml")
+    parser.add_argument("--logdir", nargs="?", type=str, default="logs/test")
+    parser.add_argument("--gpu_preserve", type=str2bool, default=False)
+    parser.add_argument("--debug", type=str2bool, default=False)
+    args = parser.parse_args()
+
+    print("running in test mode!!!")
+    time.sleep(3)
+
+    main(args.config, args.logdir, args.gpu_preserve, args.debug)

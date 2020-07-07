@@ -58,7 +58,6 @@ class Cityscapes(data.Dataset):
         is_transform=False,
         img_size="same",
         augmentations=None,
-        version="cityscapes",
         normalize_mean=[0.485, 0.456, 0.406],
         normalize_std=[0.229, 0.224, 0.225],
     ):

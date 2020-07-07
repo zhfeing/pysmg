@@ -1,0 +1,42 @@
+data:
+  dataset: pascal
+  img_cols: 448
+  img_rows: 448
+  normalize_mean:
+  - 0.485
+  - 0.456
+  - 0.406
+  normalize_std:
+  - 0.229
+  - 0.224
+  - 0.225
+  path: /home/zhfeing/datasets/voc/VOC2012/
+  sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+  train_split: train_aug
+  val_split: train_aug_val
+model:
+  arch: fcn8s
+  learned_billinear: false
+training:
+  augmentations:
+    hflip: 0.5
+    rotate: 10
+  batch_size: 64
+  loss:
+    name: cross_entropy
+  lr_schedule:
+    name: constant_lr
+  n_workers: 32
+  optimizer:
+    lr: 0.001
+    momentum: 0.99
+    name: sgd
+    weight_decay: 0.0005
+  print_interval: 10
+  resume: null
+  seed: 1
+  train_iters: 100
+  val_interval: 500
+validation:
+  batch_size: 64
+  n_workers: 32

@@ -36,7 +36,8 @@ def _get_model_instance(name):
             "fcn8s": FCN8s,
             "fcn16s": FCN16s,
             "fcn32s": FCN32s,
-            "frrn": FRRN,
+            "frrn_a": FRRN,
+            "frrn_b": FRRN,
             "icnet": ICNet,
             "segnet": SegNet
         }[name]

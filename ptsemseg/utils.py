@@ -255,6 +255,9 @@ def count_parameters(model):
 
 
 def preserve_memory():
+    if not torch.cuda.is_available():
+        print("no gpu avaliable exit...")
+        return
     try:
         import cupy
         for i in range(torch.cuda.device_count()):

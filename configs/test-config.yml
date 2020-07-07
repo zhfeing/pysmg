@@ -1,94 +1,20 @@
-# # pascal
-# data:
-#     dataset: pascal
-#     train_split: train_aug
-#     val_split: train_aug_val
-#     img_rows: 448
-#     img_cols: 448
-#     path: /home/zhfeing/datasets/voc/VOC2012/
-#     sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
-#     normalize_mean: [0.485, 0.456, 0.406]
-#     normalize_std: [0.229, 0.224, 0.225]
-
-# # camvid
-# data:
-#     dataset: camvid
-#     train_split: train
-#     val_split: val
-#     img_rows: 448
-#     img_cols: 448
-
-#     path: /home/zhfeing/datasets/camvid/CamVid11
-#     normalize_mean: [0.485, 0.456, 0.406]
-#     normalize_std: [0.229, 0.224, 0.225]
-
-# # cityscapes
-# data:
-#     dataset: cityscapes
-#     train_split: train
-#     val_split: val
-#     img_rows: 448
-#     img_cols: 448
-#     path: /home/zhfeing/datasets/cityscape
-
-# # nyuv2
-# data:
-#     dataset: nyuv2
-#     train_split: train
-#     val_split: test
-#     img_rows: 448
-#     img_cols: 448
-#     path: /home/zhfeing/datasets/nyuv2
-
-# # sunrgbd
-# data:
-#     dataset: sunrgbd
-#     train_split: train
-#     val_split: test
-#     img_rows: 448
-#     img_cols: 448
-#     path: /home/zhfeing/datasets/sunrgbd
-
-
-# # mit_sceneparsing_benchmark
-# data:
-#     dataset: mit_sceneparsing_benchmark
-#     train_split: train
-#     val_split: val
-#     img_rows: 448
-#     img_cols: 448
-
-#     path: /home/zhfeing/datasets/mit_sceneparsing_benchmark
-#     normalize_mean: [0.485, 0.456, 0.406]
-#     normalize_std: [0.229, 0.224, 0.225]
-
-# ade20k
+# pascal
 data:
-    dataset: ade20k
-    train_split: train
-    val_split: val
+    dataset: pascal
+    train_split: train_aug
+    val_split: train_aug_val
     img_rows: 448
     img_cols: 448
-
-    path: /home/zhfeing/datasets/ADEChallengeData2016
-
-# # vistas
-# data:
-#     dataset: vistas
-#     train_split: train
-#     val_split: val
-#     img_rows: 448
-#     img_cols: 448
-
-#     path: /home/zhfeing/datasets/mapillary-vistas
-#     normalize_mean: [0.485, 0.456, 0.406]
-#     normalize_std: [0.229, 0.224, 0.225]
+    path: /home/zhfeing/datasets/voc/VOC2012/
+    sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+    normalize_mean: [0.485, 0.456, 0.406]
+    normalize_std: [0.229, 0.224, 0.225]
 
 training:
     augmentations:
         rotate: 10
         hflip: 0.5
-    batch_size: 8
+    batch_size: 4
     n_workers: 4
     seed: 1
     optimizer:
@@ -107,12 +33,12 @@ training:
         name: cross_entropy
     resume:
     print_interval: 1
-    train_iters: 8000
+    train_iters: 10
     val_interval: 100
 
 validation:
-    batch_size: 8
-    n_workers: 4
+    batch_size: 64
+    n_workers: 32
 
 # # unet
 # model:
@@ -129,5 +55,7 @@ validation:
 
 # fcn
 model:
-    arch: fcn8s
-    learned_billinear: False
+    arch: frrn_b
+    model_type: B
+    group_norm: False
+    n_groups: 16
