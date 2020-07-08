@@ -1,0 +1,167 @@
+datasets:
+    pascal:
+        dataset: pascal
+        train_split: train_aug
+        val_split: train_aug_val
+        img_rows: 448
+        img_cols: 448
+        path: /home/zhfeing/datasets/voc/VOC2012/
+        sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+        normalize_mean: [0.485, 0.456, 0.406]
+        normalize_std: [0.229, 0.224, 0.225]
+
+    camvid:
+        dataset: camvid
+        train_split: train
+        val_split: val
+        img_rows: 448
+        img_cols: 448
+
+        path: /home/zhfeing/datasets/CamVid11
+
+    cityscapes:
+        dataset: cityscapes
+        train_split: train
+        val_split: val
+        img_rows: 448
+        img_cols: 448
+        path: /home/zhfeing/datasets/cityscape
+
+    nyuv2:
+        dataset: nyuv2
+        train_split: train
+        val_split: test
+        img_rows: 448
+        img_cols: 448
+        path: /home/zhfeing/datasets/nyuv2
+
+    sunrgbd:
+        dataset: sunrgbd
+        train_split: train
+        val_split: test
+        img_rows: 448
+        img_cols: 448
+        path: /home/zhfeing/datasets/sunrgbd
+
+    ade20k:
+        dataset: ade20k
+        train_split: train
+        val_split: val
+        img_rows: 448
+        img_cols: 448
+        path: /home/zhfeing/datasets/ADEChallengeData2016
+
+    vistas:
+        dataset: vistas
+        train_split: train
+        val_split: val
+        img_rows: 448
+        img_cols: 448
+        path: /home/zhfeing/datasets/mapillary-vistas
+
+encoders:
+    # resnet18: imagenet
+    # resnet34: imagenet
+    # resnet50: imagenet
+    # resnet101: imagenet
+    # resnet152: imagenet
+    # resnext50_32x4d: imagenet
+    # resnext101_32x8d: [imagenet, instagram]
+    # resnext101_32x16d: instagram
+    # resnext101_32x32d: instagram
+    # resnext101_32x48d: instagram
+    # dpn68: imagenet
+    # dpn68b: imagenet+5k
+    # dpn92: imagenet+5k
+    # dpn98: imagenet
+    # dpn107: imagenet+5k
+    # dpn131: imagenet
+    # vgg11: imagenet
+    # vgg11_bn: imagenet
+    # vgg13: imagenet
+    # vgg13_bn: imagenet
+    # vgg16: imagenet
+    # vgg16_bn: imagenet
+    # vgg19: imagenet
+    # vgg19_bn: imagenet
+    # senet154: imagenet
+    # se_resnet50: imagenet
+    # se_resnet101: imagenet
+    # se_resnet152: imagenet
+    # se_resnext50_32x4d: imagenet
+    # se_resnext101_32x4d: imagenet
+    # densenet121: imagenet
+    # densenet169: imagenet
+    # densenet201: imagenet
+    # densenet161: imagenet
+    # inceptionresnetv2: [imagenet, imagenet+background]
+    # inceptionv4: [imagenet, imagenet+background]
+    # efficientnet-b0: [imagenet, advprop]
+    # efficientnet-b1: [imagenet, advprop]
+    # efficientnet-b2: [imagenet, advprop]
+    # efficientnet-b3: [imagenet, advprop]
+    # efficientnet-b4: [imagenet, advprop]
+    # efficientnet-b5: [imagenet, advprop]
+    efficientnet-b6: [imagenet, advprop]
+    # efficientnet-b7: [imagenet, advprop]
+    # mobilenet_v2: imagenet
+    # xception: imagenet
+    # timm-efficientnet-b0: [imagenet, advprop, noisy-student]
+    # timm-efficientnet-b1: [imagenet, advprop, noisy-student]
+    # timm-efficientnet-b2: [imagenet, advprop, noisy-student]
+    # timm-efficientnet-b3: [imagenet, advprop, noisy-student]
+    # timm-efficientnet-b4: [imagenet, advprop, noisy-student]
+    # timm-efficientnet-b5: [imagenet, advprop, noisy-student]
+    # timm-efficientnet-b6: [imagenet, advprop, noisy-student]
+    # timm-efficientnet-b7: [imagenet, advprop, noisy-student]
+    # timm-efficientnet-b8: [imagenet, advprop]
+    # timm-efficientnet-l2: noisy-student
+
+models:
+    PSPNet:
+        customizable_encoder: True
+        arch: pspnet
+        encoder_depth: 3
+        psp_out_channels: 512
+        psp_use_batchnorm: True
+        psp_dropout: 0.2
+        activation:
+        upsampling: 8
+        aux_params:
+    UNet:
+        customizable_encoder: True
+        arch: unet
+        encoder_depth: 5
+        decoder_use_batchnorm: True
+        decoder_channels: [256, 128, 64, 32, 16]
+        decoder_attention_type:
+        activation:
+        aux_params:
+
+
+training:
+    augmentations:
+        rotate: 10
+        hflip: 0.5
+    optimizer:
+        name: 'sgd'
+        lr: 1.0e-3
+        weight_decay: 5.0e-4
+        momentum: 0.99
+    lr_schedule: 
+        name: constant_lr
+        # name: multi_step
+        # milestones: [80000, 90000]
+        # warmup_iters: 100
+        # warmup_mode: linear
+        # warmup_factor: 0.2
+    loss:
+        name: cross_entropy
+    resume:
+    print_interval: 1
+    train_iters: 10
+    val_interval: 500
+
+running_args:
+    batch_size: 64
+    seed: 1

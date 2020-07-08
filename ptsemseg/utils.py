@@ -280,7 +280,7 @@ def preserve_memory(preserve_percent: float = 0.95):
                 outputs = cmd.read()
                 pid = os.getpid()
 
-                logger.fatal("Avaliable memory is less than 700MB, skiping...")
+                logger.fatal("Avaliable memory is less than 100MB, skiping...")
                 logger.info("program pid: %d, current environment:\n%s", pid, outputs)
                 raise MemoryPreserveError()
             alloc_mem = int(avaliable_mem * preserve_percent / 4)

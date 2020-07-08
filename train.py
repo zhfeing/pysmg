@@ -115,6 +115,8 @@ def train(
     best_iou = -100.0
     i = start_iter
     flag = True
+
+    # start training
     logger.info("start training")
     while i <= cfg["training"]["train_iters"] and flag:
         for (images, labels) in train_loader:
@@ -125,12 +127,7 @@ def train(
             labels = labels.to(device)
 
             optimizer.zero_grad()
-            try:
-                outputs = model(images)
-            except:
-                del model
-                raise
-
+            outputs = model(images)
             loss = loss_fn(input=outputs, target=labels)
 
             loss.backward()
@@ -236,11 +233,6 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
         ),
         flush_secs=1
     )
-
-    # try:
-    #     shutil.copy(cfg_filepath, logdir)
-    # except shutil.SameFileError:
-    #     pass
 
     # get logger
     if __name__ == "__main__":
