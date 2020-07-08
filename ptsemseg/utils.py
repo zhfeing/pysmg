@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 import random
 import logging
+import gc
 
 import torch
 
@@ -255,6 +256,10 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+class MemoryPreserveError(Exception):
+    pass
+
+
 def preserve_memory(preserve_percent: float = 0.95):
     logger = logging.getLogger(__name__)
     if not torch.cuda.is_available():
@@ -264,23 +269,47 @@ def preserve_memory(preserve_percent: float = 0.95):
         import cupy
         for i in range(torch.cuda.device_count()):
             device = cupy.cuda.Device(i)
-            avaliable_mem = device.mem_info[0]
+            avaliable_mem = device.mem_info[0] - 700 * 1024 * 1024
             logger.info(
                 "%dMB memory avaliable, trying to preserve %dMB...",
                 int(avaliable_mem / 1024.0 / 1024.0),
                 int(avaliable_mem / 1024.0 / 1024.0 * preserve_percent)
             )
-            if avaliable_mem / 1024.0 / 1024.0 < 700:
+            if avaliable_mem / 1024.0 / 1024.0 < 100:
                 cmd = os.popen("nvidia-smi")
                 outputs = cmd.read()
                 pid = os.getpid()
 
                 logger.fatal("Avaliable memory is less than 700MB, skiping...")
                 logger.info("program pid: %d, current environment:\n%s", pid, outputs)
-                return
+                raise MemoryPreserveError()
             alloc_mem = int(avaliable_mem * preserve_percent / 4)
             x = torch.empty(alloc_mem).to(torch.device("cuda: {}".format(i)))
             del x
     except ImportError:
         logger.error("No cupy found, memory cannot be perserved")
 
+
+def all_tensors():
+    dtype_32 = [torch.float32, torch.int32]
+    dtype_64 = [torch.float64, torch.int64]
+    dtype_16 = [torch.float16, torch.int16]
+    dtype_8 = [torch.uint8, torch.int8]
+    # in MB
+    total_mem = 0
+    for obj in gc.get_objects():
+        if isinstance(obj, torch.Tensor):
+            mem = obj.numel()
+            if obj.dtype in dtype_8:
+                pass
+            elif obj.dtype in dtype_16:
+                mem *= 2
+            elif obj.dtype in dtype_32:
+                mem *= 4
+            elif obj.dtype in dtype_64:
+                mem *= 8
+            else:
+                print("dtype: {} unknown, set to dtype_32")
+                mem *= 4
+            total_mem += mem
+    print("total cached mem: {:.3f}MB".format(total_mem / 1024 / 1024))

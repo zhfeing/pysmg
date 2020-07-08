@@ -9,7 +9,7 @@ from typing import Dict, Any
 import torch
 
 import train
-from ptsemseg.utils import str2bool, preserve_memory
+from ptsemseg.utils import str2bool, preserve_memory, MemoryPreserveError
 
 
 def get_dataset_iter(datasets_cfg: Dict[str, Any]):
@@ -97,15 +97,11 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
         if args.gpu_preserve:
             try:
                 logger.info("Preserving memory...")
-                preserve_memory()
+                torch.cuda.empty_cache()
+                preserve_memory(0.99)
                 logger.info("Preserving memory done")
-            except RuntimeError as e:
-                if e.args[0].find("CUDA out of memory") >= 0:
-                    logger.fatal("Preserving memory failed: CUDA out of memory, somethings is wrong!!")
-                else:
-                    tb = traceback.format_exc()
-                    logger.fatal("Fatal error: {},\ntraceback: {}\n".format(e, tb))
-                logger.warning("Memory will not be preserved")
+            except MemoryPreserveError:
+                logger.fatal("Preserving memory failed: CUDA out of memory, memory will not be preserved")
 
         # write config file
         formater = (

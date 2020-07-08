@@ -51,8 +51,11 @@ def eval(
         for images_val, labels_val in tqdm.tqdm(val_loader):
             images_val = images_val.to(device)
             labels_val = labels_val.to(device)
-
-            outputs = model(images_val)
+            try:
+                outputs = model(images_val)
+            except:
+                del model
+                raise
             val_loss = loss_fn(input=outputs, target=labels_val)
 
             pred = outputs.max(1)[1].cpu().numpy()
@@ -122,7 +125,11 @@ def train(
             labels = labels.to(device)
 
             optimizer.zero_grad()
-            outputs = model(images)
+            try:
+                outputs = model(images)
+            except:
+                del model
+                raise
 
             loss = loss_fn(input=outputs, target=labels)
 
@@ -230,10 +237,10 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
         flush_secs=1
     )
 
-    try:
-        shutil.copy(cfg_filepath, logdir)
-    except shutil.SameFileError:
-        pass
+    # try:
+    #     shutil.copy(cfg_filepath, logdir)
+    # except shutil.SameFileError:
+    #     pass
 
     # get logger
     if __name__ == "__main__":
@@ -260,7 +267,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
 
     if gpu_preserve:
         logger.info("Preserving memory...")
-        preserve_memory()
+        preserve_memory(0.99)
         logger.info("Preserving memory done")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -291,7 +298,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
             logger.error("Found code bugs, exception:\n{} \ntrackback:\n{}".format(e, tb))
             raise CodeBugs
     finally:
-        # torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
         log_dir = writer.log_dir
         if not success:
             logger.info("Deleting failed tensorboard logger...")

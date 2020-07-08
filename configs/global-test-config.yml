@@ -1,0 +1,52 @@
+datasets:
+    pascal:
+        dataset: pascal
+        train_split: train_aug
+        val_split: train_aug_val
+        img_rows: 448
+        img_cols: 448
+        path: /home/zhfeing/datasets/voc/VOC2012/
+        sbd_path: /home/zhfeing/datasets/voc/benchmark_RELEASE
+        normalize_mean: [0.485, 0.456, 0.406]
+        normalize_std: [0.229, 0.224, 0.225]
+
+encoders:
+    # efficientnet-b4: [imagenet, advprop]
+    efficientnet-b5: imagenet
+
+models:
+    DeepLabV3:
+        customizable_encoder: True
+        arch: deeplabv3
+        encoder_depth: 5
+        decoder_channels: 256
+        activation:
+        upsampling: 8
+        aux_params:
+
+training:
+    augmentations:
+        rotate: 10
+        hflip: 0.5
+    optimizer:
+        name: 'sgd'
+        lr: 1.0e-3
+        weight_decay: 5.0e-4
+        momentum: 0.99
+    lr_schedule: 
+        name: constant_lr
+        # name: multi_step
+        # milestones: [80000, 90000]
+        # warmup_iters: 100
+        # warmup_mode: linear
+        # warmup_factor: 0.2
+    loss:
+        name: cross_entropy
+    resume:
+    print_interval: 1
+    train_iters: 10
+    val_interval: 500
+
+running_args:
+    batch_size: 64
+    seed: 1
