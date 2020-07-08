@@ -7,6 +7,6 @@ python model_generator.py \
     --cfg-path logs/test_p1/configs \
     --cfg-formater arch-{}-encoder-{}-data-{}.yml \
     --log-dir logs/test_p1/ \
-    --gpu-preserve True \
+    --gpu-preserve False \
     --debug False
 

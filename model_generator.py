@@ -97,7 +97,6 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
         if args.gpu_preserve:
             try:
                 logger.info("Preserving memory...")
-                torch.cuda.empty_cache()
                 preserve_memory(0.99)
                 logger.info("Preserving memory done")
             except MemoryPreserveError:
