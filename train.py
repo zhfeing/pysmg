@@ -7,7 +7,6 @@ import time
 import tqdm
 import logging
 import traceback
-import time
 from typing import Dict, Any, Callable
 
 import torch
@@ -173,9 +172,10 @@ def train(
                 }
                 save_path = os.path.join(
                     ckpt_dir,
-                    "arch-{}-encoder-{}-dataset-{}-iter-{}.pkl".format(
+                    "arch-{}-encoder-{}-weight-{}-dataset-{}-iter-{}.pkl".format(
                         cfg["model"]["arch"],
                         cfg["model"]["encoder_name"],
+                        cfg["model"]["encoder_weights"],
                         cfg["data"]["dataset"],
                         i
                     ),
@@ -187,9 +187,10 @@ def train(
                     save_path = os.path.join(
                         logdir,
                         "ckpt",
-                        "arch-{}-encoder-{}-dataset-{}-best.pkl".format(
+                        "arch-{}-encoder-{}-weight-{}-dataset-{}-best.pkl".format(
                             cfg["model"]["arch"],
                             cfg["model"]["encoder_name"],
+                            cfg["model"]["encoder_weights"],
                             cfg["data"]["dataset"]
                         ),
                     )
@@ -214,20 +215,17 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
     os.makedirs(logdir, exist_ok=True)
     os.makedirs(ckpt_dir, exist_ok=True)
 
-    if "encoder_name" in cfg["model"].keys():
-        formater = (
-            cfg["model"]["arch"],
-            cfg["model"]["encoder_name"],
-            cfg["data"]["dataset"]
-        )
-    else:
-        formater = (cfg["model"]["arch"], None, cfg["data"]["dataset"])
-
+    formater = (
+        cfg["model"]["arch"],
+        cfg["model"]["encoder_name"],
+        cfg["model"]["encoder_weights"],
+        cfg["data"]["dataset"]
+    )
     writer = SummaryWriter(
         log_dir=os.path.join(
             logdir,
             "tf-board-logs",
-            "arch-{}-encoder-{}-data-{}".format(*formater)
+            "arch-{}-encoder-weight-{}-{}-data-{}".format(*formater)
         ),
         flush_secs=1
     )

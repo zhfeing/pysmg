@@ -6,6 +6,7 @@ import argparse
 import numpy as np
 from PIL import Image
 import random
+import logging
 
 import torch
 
@@ -254,18 +255,32 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def preserve_memory():
+def preserve_memory(preserve_percent: float = 0.95):
+    logger = logging.getLogger(__name__)
     if not torch.cuda.is_available():
-        print("no gpu avaliable exit...")
+        logger.error("no gpu avaliable exit...")
         return
     try:
         import cupy
         for i in range(torch.cuda.device_count()):
             device = cupy.cuda.Device(i)
             avaliable_mem = device.mem_info[0]
-            alloc_mem = int(avaliable_mem * 0.95 / 4)
+            logger.info(
+                "%dMB memory avaliable, trying to preserve %dMB...",
+                int(avaliable_mem / 1024.0 / 1024.0),
+                int(avaliable_mem / 1024.0 / 1024.0 * preserve_percent)
+            )
+            if avaliable_mem / 1024.0 / 1024.0 < 700:
+                cmd = os.popen("nvidia-smi")
+                outputs = cmd.read()
+                pid = os.getpid()
+
+                logger.fatal("Avaliable memory is less than 700MB, skiping...")
+                logger.info("program pid: %d, current environment:\n%s", pid, outputs)
+                return
+            alloc_mem = int(avaliable_mem * preserve_percent / 4)
             x = torch.empty(alloc_mem).to(torch.device("cuda: {}".format(i)))
             del x
     except ImportError:
-        print("No cupy found, memory cannot be perserved")
+        logger.error("No cupy found, memory cannot be perserved")
 

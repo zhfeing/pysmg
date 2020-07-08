@@ -66,14 +66,7 @@ def generate_models(global_config: str, cfg_filepath: str):
     for cfg in get_config_iter(global_config):
         cfg["training"] = global_config["training"]
         cfg["validation"] = dict()
-
-        if args.gpu_preserve:
-            logger.info("Preserving memory...")
-            preserve_memory()
-            logger.info("Preserving memory done")
-
         train_with_cfg(cfg, global_config["running_args"], cfg_filepath)
-        torch.cuda.empty_cache()
 
 
 def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_filepath: str):
@@ -90,24 +83,44 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
     flag = True
     cfg_failed = False
     while flag:
-        try:
-            train_cfg["training"]["batch_size"] = bs
-            train_cfg["training"]["seed"] = seed
-            train_cfg["training"]["n_workers"] = worker
-            train_cfg["validation"]["batch_size"] = bs
-            train_cfg["validation"]["n_workers"] = worker
+        train_cfg["training"]["batch_size"] = bs
+        train_cfg["training"]["seed"] = seed
+        train_cfg["training"]["n_workers"] = worker
+        train_cfg["validation"]["batch_size"] = bs
+        train_cfg["validation"]["n_workers"] = worker
 
-            if "encoder_name" in train_cfg["model"].keys():
-                formater = (
-                    train_cfg["model"]["arch"],
-                    train_cfg["model"]["encoder_name"],
-                    train_cfg["data"]["dataset"]
-                )
-            else:
-                formater = (train_cfg["model"]["arch"], None, train_cfg["data"]["dataset"])
-            cfg_filepath = cfg_filepath.format(*formater)
-            with open(cfg_filepath, "w") as file:
-                yaml.dump(train_cfg, file, yaml.SafeDumper)
+        if "encoder_name" not in train_cfg["model"].keys():
+            train_cfg["model"]["encoder_name"] = None
+            train_cfg["model"]["encoder_weights"] = None
+
+        # preserving memory
+        if args.gpu_preserve:
+            try:
+                logger.info("Preserving memory...")
+                preserve_memory()
+                logger.info("Preserving memory done")
+            except RuntimeError as e:
+                if e.args[0].find("CUDA out of memory") >= 0:
+                    logger.fatal("Preserving memory failed: CUDA out of memory, somethings is wrong!!")
+                else:
+                    tb = traceback.format_exc()
+                    logger.fatal("Fatal error: {},\ntraceback: {}\n".format(e, tb))
+                logger.warning("Memory will not be preserved")
+
+        # write config file
+        formater = (
+            train_cfg["model"]["arch"],
+            train_cfg["model"]["encoder_name"],
+            train_cfg["model"]["encoder_weights"],
+            train_cfg["data"]["dataset"]
+        )
+        cfg_filepath = cfg_filepath.format(*formater)
+        logger.info("Writing config file: %s", cfg_filepath)
+        with open(cfg_filepath, "w") as file:
+            yaml.dump(train_cfg, file, yaml.SafeDumper)
+
+        # training
+        try:
             train.main(
                 cfg_filepath=cfg_filepath,
                 logdir=args.log_dir,
@@ -138,6 +151,7 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
             flag = False
             cfg_failed = True
         finally:
+            torch.cuda.empty_cache()
             if cfg_failed:
                 failed_list_name = os.path.join(args.log_dir, "failed_list.txt")
                 mode = "a" if os.path.isfile(failed_list_name) else "w"
@@ -149,13 +163,16 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--global-config", type=str)
-    parser.add_argument("--cfg-filepath", type=str)
+    parser.add_argument("--cfg-path", type=str)
+    parser.add_argument("--cfg-formater", type=str)
     parser.add_argument("--log-dir", type=str)
     parser.add_argument("--gpu-preserve", type=str2bool, default=False)
     parser.add_argument("--debug", type=str2bool, default=False)
     args = parser.parse_args()
 
     os.makedirs(args.log_dir, exist_ok=True)
+    os.makedirs(args.cfg_path, exist_ok=True)
+    cfg_filepath = os.path.join(args.cfg_path, args.cfg_formater)
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -172,5 +189,5 @@ if __name__ == "__main__":
 
     generate_models(
         global_config=args.global_config,
-        cfg_filepath=args.cfg_filepath
+        cfg_filepath=cfg_filepath
     )
