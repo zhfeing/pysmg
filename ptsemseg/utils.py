@@ -8,6 +8,7 @@ from PIL import Image
 import random
 import logging
 import gc
+import threading
 
 import torch
 
@@ -285,7 +286,7 @@ def all_tensors():
     print("total cached mem: {:.3f}MB".format(total_mem / 1024 / 1024))
 
 
-def preserve_memory(gpu_id: int, preserve_percent: float = 0.95):
+def preserve_gpu_with_id(gpu_id: int, preserve_percent: float = 0.95):
     logger = logging.getLogger(__name__)
     if not torch.cuda.is_available():
         logger.error("no gpu avaliable exit...")
@@ -314,8 +315,23 @@ def preserve_memory(gpu_id: int, preserve_percent: float = 0.95):
         logger.error("No cupy found, memory cannot be perserved")
 
 
-def async_preserve_memory(preserve_percent: float = 0.95):
+def preserve_memory(preserve_percent: float = 0.95):
     logger = logging.getLogger(__name__)
     if not torch.cuda.is_available():
         logger.error("no gpu avaliable exit...")
         return
+    thread_pool = list()
+    for i in range(torch.cuda.device_count()):
+        thread = threading.Thread(
+            target=preserve_gpu_with_id,
+            kwargs=dict(
+                gpu_id=i,
+                preserve_percent=preserve_percent
+            ),
+            name="Preserving GPU {}".format(i)
+        )
+        logger.info("Starting to preserve GPU: {}".format(i))
+        thread.start()
+        thread_pool.append(thread)
+    for t in thread_pool:
+        t.join()
