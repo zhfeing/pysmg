@@ -39,8 +39,7 @@ class Runner(Process):
         self._logger.info("Initial multiprocess runner done, main pid: %d", os.getpid())
 
     def run(self):
-        print(__name__)
-        logger = logging.getLogger()
+        logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
         console = logging.StreamHandler()
         console.setLevel(logging.INFO)

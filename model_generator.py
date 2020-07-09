@@ -189,6 +189,7 @@ if __name__ == "__main__":
     cfg_filepath = os.path.join(args.cfg_path, args.cfg_formatter)
 
     logger = get_logger(
+        name=None,
         level=logging.INFO,
         logger_fp=os.path.join(args.log_dir, "train.log")
     )

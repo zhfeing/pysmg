@@ -247,6 +247,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
     logger = get_logger(
         level=logging.INFO,
         mode="a",
+        name="root",
         logger_fp=os.path.join(
             train_log_dir,
             "training-arch-{}-encoder-{}-weight-{}-data-{}.log".format(*formatter)
@@ -303,7 +304,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
             logdir=logdir
         )
         success = True
-        return best_iou
+        return dict(best_iou=best_iou)
     except Exception as e:
         tb = traceback.format_exc()
         if isinstance(e, RuntimeError) and e.args[0].find("CUDA out of memory") >= 0:

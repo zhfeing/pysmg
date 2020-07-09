@@ -8,6 +8,7 @@ from PIL import Image
 import random
 import logging
 import gc
+from typing import Optional
 
 import torch
 
@@ -318,10 +319,11 @@ def all_tensors():
 def get_logger(
     level: int,
     logger_fp: str,
+    name: Optional[str] = None,
     mode: str = "w",
     formate: str = "%(asctime)s - %(levelname)s - %(message)s"
 ):
-    logger = logging.getLogger()
+    logger = logging.getLogger(name)
     logger.setLevel(level)
     file_handler = logging.FileHandler(logger_fp, "w")
     file_handler.setLevel(level)
