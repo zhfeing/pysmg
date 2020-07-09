@@ -3,13 +3,27 @@ import argparse
 import copy
 import logging
 import os
-import traceback
+import signal
 from typing import Dict, Any
 
 import torch
 
 import train
-from ptsemseg.utils import str2bool, preserve_memory, MemoryPreserveError
+from ptsemseg.utils import str2bool
+from multiprocess_utils import multiprocess_runner
+
+
+running_sub_processed: Dict[str, multiprocess_runner.Process] = dict()
+
+
+def kill_handler(signum, frame):
+    logger.warning("Got kill signal, exiting...")
+    for name, p in running_sub_processed.items():
+        logger.info("Killing subprocess: {}...".format(name))
+        p.terminate()
+        logger.info("Killed")
+    logger.info("Killing main process...")
+    exit()
 
 
 def get_dataset_iter(datasets_cfg: Dict[str, Any]):
@@ -78,11 +92,9 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
     """
 
     bs = running_cfg["batch_size"]
-    worker = min(bs, 32)
+    worker = min(bs, 8)
     seed = running_cfg["seed"]
-    flag = True
-    cfg_failed = False
-    while flag:
+    while True:
         train_cfg["training"]["batch_size"] = bs
         train_cfg["training"]["seed"] = seed
         train_cfg["training"]["n_workers"] = worker
@@ -93,73 +105,78 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
             train_cfg["model"]["encoder_name"] = None
             train_cfg["model"]["encoder_weights"] = None
 
-        # preserving memory
-        if args.gpu_preserve:
-            try:
-                logger.info("Preserving memory...")
-                preserve_memory(0.99)
-                logger.info("Preserving memory done")
-            except MemoryPreserveError:
-                logger.fatal("Preserving memory failed: CUDA out of memory, memory will not be preserved")
-
         # write config file
-        formater = (
+        formatter = (
             train_cfg["model"]["arch"],
             train_cfg["model"]["encoder_name"],
             train_cfg["model"]["encoder_weights"],
             train_cfg["data"]["dataset"]
         )
-        cfg_filepath = cfg_filepath.format(*formater)
+        cfg_filepath = cfg_filepath.format(*formatter)
         logger.info("Writing config file: %s", cfg_filepath)
         with open(cfg_filepath, "w") as file:
             yaml.dump(train_cfg, file, yaml.SafeDumper)
 
         # training
-        try:
-            train.main(
+        result_queue = multiprocess_runner.Queue()
+        train_runner = multiprocess_runner.Runner(
+            target=train.main,
+            name="train-model-{}-encoder-{}-weights-{}-dataset-{}".format(*formatter),
+            kwargs=dict(
                 cfg_filepath=cfg_filepath,
                 logdir=args.log_dir,
-                gpu_preserve=False,
+                gpu_preserve=args.gpu_preserve,
                 debug=args.debug
-            )
+            ),
+            result_queue=result_queue
+        )
+        running_sub_processed[train_runner.name] = train_runner
+        train_runner.start()
+        logger.info("Main process is waiting for subprocess join...")
+        train_runner.join()
+        running_sub_processed.pop(train_runner.name)
+        result = result_queue.get()
+        if isinstance(result, multiprocess_runner.RunResult):
             logger.info("Training Done\n\n")
-            flag = False
-        except train.CUDAOutOfMemory:
+            break
+
+        # runing config failed
+        e = result.exception
+        tb = result.traceback
+        cfg_failed = False
+
+        if isinstance(e, train.CUDAOutOfMemory):
             bs //= 2
             worker = min(bs, 32)
             logger.warning("Model generator is out of memory, trying to reduce batch size to {}".format(bs))
             if bs < 2 * torch.cuda.device_count():
                 logger.error("Minimum bathsize reached, skipping this config")
-                flag = False
                 cfg_failed = True
-        except train.CUDAMemoryNotEnoughForModel:
+        elif isinstance(e, train.CUDAMemoryNotEnoughForModel):
             logger.error("Gpu memory is too small, skipping this config")
-            flag = False
             cfg_failed = True
-        except train.CodeBugs:
+        elif isinstance(e, train.CodeBugs):
             logger.error("Found code bugs, skipping this config")
-            flag = False
             cfg_failed = True
-        except Exception as e:
-            tb = traceback.format_exc()
-            logger.error("Run time error: {},\ntraceback: {}".format(e, tb))
-            flag = False
+        else:
+            logger.fatal("Run time error: {},\ntraceback: {}".format(e, tb))
             cfg_failed = True
-        finally:
-            torch.cuda.empty_cache()
-            if cfg_failed:
-                failed_list_name = os.path.join(args.log_dir, "failed_list.txt")
-                mode = "a" if os.path.isfile(failed_list_name) else "w"
-                with open(failed_list_name, mode) as file:
-                    file.write(yaml.dump(train_cfg))
-                    file.write("\n--------------------------------------------------\n\n")
+
+        if cfg_failed:
+            failed_list_name = os.path.join(args.log_dir, "failed_list.txt")
+            mode = "a" if os.path.isfile(failed_list_name) else "w"
+            with open(failed_list_name, mode) as file:
+                file.write("model-{}-encoder-{}-weights-{}-dataset-{}\n".format(*formatter))
+            break
 
 
 if __name__ == "__main__":
+    # set spawn start method
+    multiprocess_runner.set_spawn_start_method()
     parser = argparse.ArgumentParser()
     parser.add_argument("--global-config", type=str)
     parser.add_argument("--cfg-path", type=str)
-    parser.add_argument("--cfg-formater", type=str)
+    parser.add_argument("--cfg-formatter", type=str)
     parser.add_argument("--log-dir", type=str)
     parser.add_argument("--gpu-preserve", type=str2bool, default=False)
     parser.add_argument("--debug", type=str2bool, default=False)
@@ -167,7 +184,7 @@ if __name__ == "__main__":
 
     os.makedirs(args.log_dir, exist_ok=True)
     os.makedirs(args.cfg_path, exist_ok=True)
-    cfg_filepath = os.path.join(args.cfg_path, args.cfg_formater)
+    cfg_filepath = os.path.join(args.cfg_path, args.cfg_formatter)
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -181,6 +198,10 @@ if __name__ == "__main__":
     console.setLevel(logging.INFO)
     console.setFormatter(formatter)
     logger.addHandler(console)
+
+    signal.signal(signal.SIGINT, kill_handler)
+    signal.signal(signal.SIGHUP, kill_handler)
+    signal.signal(signal.SIGTERM, kill_handler)
 
     generate_models(
         global_config=args.global_config,

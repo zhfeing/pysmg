@@ -219,7 +219,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
     os.makedirs(logdir, exist_ok=True)
     os.makedirs(ckpt_dir, exist_ok=True)
 
-    formater = (
+    formatter = (
         cfg["model"]["arch"],
         cfg["model"]["encoder_name"],
         cfg["model"]["encoder_weights"],
@@ -229,33 +229,34 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
         log_dir=os.path.join(
             logdir,
             "tf-board-logs",
-            "arch-{}-encoder-weight-{}-{}-data-{}".format(*formater)
+            "arch-{}-encoder-{}-weight-{}-data-{}".format(*formatter)
         ),
         flush_secs=1
     )
 
-    # get logger
-    if __name__ == "__main__":
-        logger = logging.getLogger()
-        logger.setLevel(logging.INFO)
-        file_handler = logging.FileHandler(os.path.join(logdir, "train.log"), "w")
-        file_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-        logger.propagate = False
-        console = logging.StreamHandler()
-        console.setLevel(logging.INFO)
-        console.setFormatter(formatter)
-        logger.addHandler(console)
-    else:
-        logger = logging.getLogger(__name__)
+    train_log_dir = os.path.join(logdir, "train-logs")
+    os.makedirs(train_log_dir, exist_ok=True)
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler(
+        os.path.join(
+            train_log_dir,
+            "training-arch-{}-encoder-{}-weight-{}-data-{}.log".format(*formatter)
+        ), "w"
+    )
+    file_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.propagate = False
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(formatter)
+    logger.addHandler(console)
 
     logger.info("Start running with config: \n{}".format(yaml.dump(cfg)))
-    logger.info("RUNDIR: {}".format(logdir))
-
     make_deterministic(seed)
-    logger.info("set seed : {}".format(seed))
+    logger.info("Set seed : {}".format(seed))
 
     if gpu_preserve:
         logger.info("Preserving memory...")
@@ -272,21 +273,24 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
         len(train_loader.dataset),
         len(val_loader.dataset)
     ))
+    # move model to gpu
     try:
         model = get_model(cfg, n_classes).to(device)
     except RuntimeError as e:
         logger.error("Model too huge to move to gpu, exception: {}\n".format(e))
         raise CUDAMemoryNotEnoughForModel
+
+    # start training
     success = False
     try:
         train(cfg, model, train_loader, val_loader, ckpt_dir, logger, writer, device, logdir)
         success = True
     except Exception as e:
+        tb = traceback.format_exc()
         if isinstance(e, RuntimeError) and e.args[0].find("CUDA out of memory") >= 0:
-            logger.warning("Running out of memory, exception: {}\n".format(e))
+            logger.warning("Running out of memory, exception:\n{} \ntrackback:\n{}".format(e, tb))
             raise CUDAOutOfMemory
         else:
-            tb = traceback.format_exc()
             logger.error("Found code bugs, exception:\n{} \ntrackback:\n{}".format(e, tb))
             raise CodeBugs
     finally:
@@ -295,7 +299,6 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
         if not success:
             logger.info("Deleting failed tensorboard logger...")
             writer.close()
-            # time.sleep(1.5)
             shutil.rmtree(log_dir)
             time.sleep(1.5)
             logger.info("Deleting failed tensorboard logger done")
