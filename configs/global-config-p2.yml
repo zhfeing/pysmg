@@ -118,23 +118,23 @@ encoders:
     timm-efficientnet-l2: noisy-student
 
 models:
-    FPN:
+    PAN:
         customizable_encoder: True
-        arch: fpn
-        encoder_depth: 5
-        decoder_pyramid_channels: 256
-        decoder_segmentation_channels: 128
-        decoder_merge_policy: add
-        decoder_dropout: 0.2
+        arch: pan
+        encoder_dilation: True
+        decoder_channels: 32
         activation:
         upsampling: 4
         aux_params:
-    Linknet:
+    PSPNet:
         customizable_encoder: True
-        arch: linknet
-        encoder_depth: 5
-        decoder_use_batchnorm: True
+        arch: pspnet
+        encoder_depth: 3
+        psp_out_channels: 512
+        psp_use_batchnorm: True
+        psp_dropout: 0.2
         activation:
+        upsampling: 8
         aux_params:
 
 training:

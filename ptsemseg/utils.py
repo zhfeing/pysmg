@@ -318,6 +318,7 @@ def all_tensors():
 def get_logger(
     level: int,
     logger_fp: str,
+    mode: str = "w",
     formate: str = "%(asctime)s - %(levelname)s - %(message)s"
 ):
     logger = logging.getLogger()

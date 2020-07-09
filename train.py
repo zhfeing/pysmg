@@ -246,6 +246,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
     os.makedirs(train_log_dir, exist_ok=True)
     logger = get_logger(
         level=logging.INFO,
+        mode="a",
         logger_fp=os.path.join(
             train_log_dir,
             "training-arch-{}-encoder-{}-weight-{}-data-{}.log".format(*formatter)

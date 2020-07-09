@@ -9,7 +9,7 @@ from typing import Dict, Any
 import torch
 
 import train
-from ptsemseg.utils import str2bool
+from ptsemseg.utils import str2bool, get_logger
 from multiprocess_utils import multiprocess_runner
 
 
@@ -188,18 +188,10 @@ if __name__ == "__main__":
     os.makedirs(args.cfg_path, exist_ok=True)
     cfg_filepath = os.path.join(args.cfg_path, args.cfg_formatter)
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    file_handler = logging.FileHandler(os.path.join(args.log_dir, "train.log"), "w")
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    logger.propagate = False
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    console.setFormatter(formatter)
-    logger.addHandler(console)
+    logger = get_logger(
+        level=logging.INFO,
+        logger_fp=os.path.join(args.log_dir, "train.log")
+    )
 
     signal.signal(signal.SIGINT, kill_handler)
     signal.signal(signal.SIGHUP, kill_handler)
