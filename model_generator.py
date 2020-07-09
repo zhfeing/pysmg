@@ -135,9 +135,10 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
         logger.info("Main process is waiting for subprocess join...")
         train_runner.join()
         running_sub_processed.pop(train_runner.name)
+
         result = result_queue.get()
         if isinstance(result, multiprocess_runner.RunResult):
-            logger.info("Training Done\n\n")
+            logger.info("Training Done, result: {}\n".format(result))
             break
 
         # runing config failed
@@ -147,7 +148,7 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
 
         if isinstance(e, train.CUDAOutOfMemory):
             bs //= 2
-            worker = min(bs, 32)
+            worker = min(bs, 8)
             logger.warning("Model generator is out of memory, trying to reduce batch size to {}".format(bs))
             if bs < 2 * torch.cuda.device_count():
                 logger.error("Minimum bathsize reached, skipping this config")
@@ -159,7 +160,7 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
             logger.error("Found code bugs, skipping this config")
             cfg_failed = True
         else:
-            logger.fatal("Run time error: {},\ntraceback: {}".format(e, tb))
+            logger.fatal("Run time error: {},\ntraceback: {}, skiping this config".format(e, tb))
             cfg_failed = True
 
         if cfg_failed:
@@ -173,6 +174,7 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
 if __name__ == "__main__":
     # set spawn start method
     multiprocess_runner.set_spawn_start_method()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--global-config", type=str)
     parser.add_argument("--cfg-path", type=str)

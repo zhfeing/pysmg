@@ -14,7 +14,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from ptsemseg.utils import make_deterministic, str2bool, preserve_memory
+from ptsemseg.utils import make_deterministic, str2bool, preserve_memory, get_logger
 from ptsemseg.metrics import RunningScore
 from ptsemseg.model import get_model
 from ptsemseg.optimizers import get_optimizer
@@ -34,6 +34,13 @@ class CodeBugs(Exception):
 
 class CUDAMemoryNotEnoughForModel(Exception):
     pass
+
+
+def rm_tf_logger(writer: SummaryWriter):
+    log_dir = writer.log_dir
+    writer.close()
+    shutil.rmtree(log_dir)
+    time.sleep(1.5)
 
 
 def eval(
@@ -203,6 +210,7 @@ def train(
             if i == cfg["training"]["train_iters"]:
                 flag = False
                 break
+    return best_iou
 
 
 def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
@@ -236,25 +244,16 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
 
     train_log_dir = os.path.join(logdir, "train-logs")
     os.makedirs(train_log_dir, exist_ok=True)
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    file_handler = logging.FileHandler(
-        os.path.join(
+    logger = get_logger(
+        level=logging.INFO,
+        logger_fp=os.path.join(
             train_log_dir,
             "training-arch-{}-encoder-{}-weight-{}-data-{}.log".format(*formatter)
-        ), "w"
+        )
     )
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    logger.propagate = False
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    console.setFormatter(formatter)
-    logger.addHandler(console)
-
     logger.info("Start running with config: \n{}".format(yaml.dump(cfg)))
+
+    # set seed
     make_deterministic(seed)
     logger.info("Set seed : {}".format(seed))
 
@@ -277,14 +276,33 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
     try:
         model = get_model(cfg, n_classes).to(device)
     except RuntimeError as e:
+        tb = traceback.format_exc()
         logger.error("Model too huge to move to gpu, exception: {}\n".format(e))
         raise CUDAMemoryNotEnoughForModel
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.fatal("While getting model, exception:\n{}\ntraceback:\n{}\n".format(e, tb))
+        logger.info("Deleting failed tensorboard logger...")
+        rm_tf_logger(writer)
+        logger.info("Deleting failed tensorboard logger done")
+        raise
 
     # start training
     success = False
     try:
-        train(cfg, model, train_loader, val_loader, ckpt_dir, logger, writer, device, logdir)
+        best_iou = train(
+            cfg=cfg,
+            model=model,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            ckpt_dir=ckpt_dir,
+            logger=logger,
+            writer=writer,
+            device=device,
+            logdir=logdir
+        )
         success = True
+        return best_iou
     except Exception as e:
         tb = traceback.format_exc()
         if isinstance(e, RuntimeError) and e.args[0].find("CUDA out of memory") >= 0:
@@ -294,13 +312,9 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
             logger.error("Found code bugs, exception:\n{} \ntrackback:\n{}".format(e, tb))
             raise CodeBugs
     finally:
-        torch.cuda.empty_cache()
-        log_dir = writer.log_dir
         if not success:
             logger.info("Deleting failed tensorboard logger...")
-            writer.close()
-            shutil.rmtree(log_dir)
-            time.sleep(1.5)
+            rm_tf_logger(writer)
             logger.info("Deleting failed tensorboard logger done")
 
 

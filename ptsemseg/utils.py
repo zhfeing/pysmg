@@ -313,3 +313,23 @@ def all_tensors():
                 mem *= 4
             total_mem += mem
     print("total cached mem: {:.3f}MB".format(total_mem / 1024 / 1024))
+
+
+def get_logger(
+    level: int,
+    logger_fp: str,
+    formate: str = "%(asctime)s - %(levelname)s - %(message)s"
+):
+    logger = logging.getLogger()
+    logger.setLevel(level)
+    file_handler = logging.FileHandler(logger_fp, "w")
+    file_handler.setLevel(level)
+    formatter = logging.Formatter(formate)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.propagate = False
+    console = logging.StreamHandler()
+    console.setLevel(level)
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+    return logger
