@@ -118,25 +118,24 @@ encoders:
     timm-efficientnet-l2: noisy-student
 
 models:
-    FPN:
+    DeepLabV3:
         customizable_encoder: True
-        arch: fpn
+        arch: deeplabv3
         encoder_depth: 5
-        decoder_pyramid_channels: 256
-        decoder_segmentation_channels: 128
-        decoder_merge_policy: add
-        decoder_dropout: 0.2
+        decoder_channels: 256
+        activation:
+        upsampling: 8
+        aux_params:
+    DeepLabV3Plus:
+        customizable_encoder: True
+        arch: deeplabv3+
+        encoder_depth: 5
+        encoder_output_stride: 16
+        decoder_channels: 256
+        decoder_atrous_rates: [12, 24, 36]
         activation:
         upsampling: 4
         aux_params:
-    Linknet:
-        customizable_encoder: True
-        arch: linknet
-        encoder_depth: 5
-        decoder_use_batchnorm: True
-        activation:
-        aux_params:
-
 training:
     augmentations:
         rotate: 10
@@ -147,17 +146,17 @@ training:
         weight_decay: 5.0e-4
         momentum: 0.99
     lr_schedule: 
-        name: constant_lr
-        # name: multi_step
-        # milestones: [80000, 90000]
-        # warmup_iters: 100
-        # warmup_mode: linear
-        # warmup_factor: 0.2
+        # name: constant_lr
+        name: multi_step
+        milestones: [80000, 90000]
+        warmup_iters: 100
+        warmup_mode: linear
+        warmup_factor: 0.2
     loss:
         name: cross_entropy
     resume:
-    print_interval: 1
-    train_iters: 10
+    print_interval: 50
+    train_iters: 100000
     val_interval: 500
 
 running_args:
