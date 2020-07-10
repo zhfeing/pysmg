@@ -143,7 +143,7 @@ def train(
 
             time_meter.update(time.time() - start_ts)
 
-            if i % cfg["training"]["print_interval"] == 0:
+            if i % cfg["training"]["print_interval"] == 1:
                 fmt_str = "Iter [{:d}/{:d}]  Loss: {:.4f} Lr: {} Time/Image: {:.4f}"
                 print_str = fmt_str.format(
                     i,
@@ -156,7 +156,7 @@ def train(
                 writer.add_scalar("loss/train_loss", loss.item(), i)
                 time_meter.reset()
 
-            if i % cfg["training"]["val_interval"] == 0 or i == cfg["training"]["train_iters"]:
+            if i % cfg["training"]["val_interval"] == 1 or i == cfg["training"]["train_iters"]:
                 logger.info("start evaling")
                 running_metrics_val, val_loss_meter = eval(model, val_loader, loss_fn, device)
 
@@ -247,7 +247,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
     logger = get_logger(
         level=logging.INFO,
         mode="a",
-        name="root",
+        name="Train",
         logger_fp=os.path.join(
             train_log_dir,
             "training-arch-{}-encoder-{}-weight-{}-data-{}.log".format(*formatter)

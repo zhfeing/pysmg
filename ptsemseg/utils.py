@@ -9,6 +9,7 @@ import random
 import logging
 import gc
 import threading
+from typing import Optional
 
 import torch
 
@@ -287,38 +288,35 @@ def all_tensors():
 
 
 def preserve_gpu_with_id(gpu_id: int, preserve_percent: float = 0.95):
-    logger = logging.getLogger(__name__)
     if not torch.cuda.is_available():
-        logger.error("no gpu avaliable exit...")
+        print("no gpu avaliable exit...")
         return
     try:
         import cupy
         device = cupy.cuda.Device(gpu_id)
         avaliable_mem = device.mem_info[0] - 700 * 1024 * 1024
-        logger.info(
-            "%dMB memory avaliable, trying to preserve %dMB...",
+        print("{}MB memory avaliable, trying to preserve {}MB...".format(
             int(avaliable_mem / 1024.0 / 1024.0),
             int(avaliable_mem / 1024.0 / 1024.0 * preserve_percent)
-        )
+        ))
         if avaliable_mem / 1024.0 / 1024.0 < 100:
             cmd = os.popen("nvidia-smi")
             outputs = cmd.read()
             pid = os.getpid()
 
-            logger.fatal("Avaliable memory is less than 100MB, skiping...")
-            logger.info("program pid: %d, current environment:\n%s", pid, outputs)
+            print("Avaliable memory is less than 100MB, skiping...")
+            print("program pid: %d, current environment:\n%s", pid, outputs)
             raise MemoryPreserveError()
         alloc_mem = int(avaliable_mem * preserve_percent / 4)
         x = torch.empty(alloc_mem).to(torch.device("cuda: {}".format(gpu_id)))
         del x
     except ImportError:
-        logger.error("No cupy found, memory cannot be perserved")
+        print("No cupy found, memory cannot be perserved")
 
 
-def preserve_memory(preserve_percent: float = 0.95):
-    logger = logging.getLogger(__name__)
+def preserve_memory(preserve_percent: float = 0.99):
     if not torch.cuda.is_available():
-        logger.error("no gpu avaliable exit...")
+        print("no gpu avaliable exit...")
         return
     thread_pool = list()
     for i in range(torch.cuda.device_count()):
@@ -330,8 +328,30 @@ def preserve_memory(preserve_percent: float = 0.95):
             ),
             name="Preserving GPU {}".format(i)
         )
-        logger.info("Starting to preserve GPU: {}".format(i))
+        print("Starting to preserve GPU: {}".format(i))
         thread.start()
         thread_pool.append(thread)
     for t in thread_pool:
         t.join()
+
+
+def get_logger(
+    level: int,
+    logger_fp: str,
+    name: Optional[str] = None,
+    mode: str = "w",
+    formate: str = "%(asctime)s - %(levelname)s - %(message)s"
+):
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    file_handler = logging.FileHandler(logger_fp, "w")
+    file_handler.setLevel(level)
+    formatter = logging.Formatter(formate)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.propagate = False
+    console = logging.StreamHandler()
+    console.setLevel(level)
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+    return logger
