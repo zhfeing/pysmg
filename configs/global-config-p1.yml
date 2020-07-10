@@ -149,9 +149,9 @@ training:
         # name: constant_lr
         name: multi_step
         milestones: [80000, 90000]
-        warmup_iters: 100
-        warmup_mode: linear
-        warmup_factor: 0.2
+        # warmup_iters: 100
+        # warmup_mode: linear
+        # warmup_factor: 0.2
     loss:
         name: cross_entropy
     resume:

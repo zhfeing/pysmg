@@ -1,39 +1,22 @@
-import logging
-import time
-
-from multiprocess_utils.multiprocess_runner import Runner, Queue
-
-
-def target():
-    while True:
-        print("hehe")
-        time.sleep(4)
+from ptsemseg.schedulers import get_scheduler
+from torch.optim import SGD
+import torch
 
 
-if __name__ == "__main__":
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    logger.addHandler(console)
-    logger.info("start main")
+x = torch.rand(100, requires_grad=True)
+optm = SGD([x], 0.1)
+s = get_scheduler(
+    optm,
+    {
+        "name": "multi_step",
+        "milestones": [80000, 90000],
+        "warmup_iters": 10000,
+        "warmup_mode": "constant",
+        "warmup_factor": 0.2
+    }
+)
 
-    result_queue = Queue()
-    runner = Runner(
-        target=target,
-        name="hehe",
-        kwargs=dict(),
-        result_queue=result_queue
-    )
-    runner.start()
-    try:
-        runner.join()
-    except Exception as e:
-        print(e)
-    result = result_queue.get()
-
-    # if isinstance(result, RunResult):
-    #     print(result)
-    # elif isinstance(result, FatalResult):
-    #     print("ffff", result.traceback, result.exception)
+for i in range(300):
+    print(s.get_lr())
+    s.step()
 
