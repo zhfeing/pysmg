@@ -1,6 +1,5 @@
 import os
 import json
-import torch
 import numpy as np
 
 from torch.utils import data

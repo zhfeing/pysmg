@@ -1,6 +1,6 @@
 from torch.utils.data import DataLoader
-from ptsemseg.augmentations import get_composed_augmentations
-from ptsemseg.data import get_dataset
+from pysmg.augmentations import get_composed_augmentations
+from pysmg.data import get_dataset
 
 
 __all__ = ["get_dataloader"]

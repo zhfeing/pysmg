@@ -3,12 +3,12 @@ from typing import Dict
 
 from torch.nn import Module
 
-from segmentation_models_pytorch.deeplabv3 import DeepLabV3, DeepLabV3Plus
-from segmentation_models_pytorch.fpn import FPN
-from segmentation_models_pytorch.linknet import Linknet
-from segmentation_models_pytorch.pan import PAN
-from segmentation_models_pytorch.pspnet import PSPNet
-from segmentation_models_pytorch.unet import Unet
+from pysmg.model.deeplabv3 import DeepLabV3, DeepLabV3Plus
+from pysmg.model.fpn import FPN
+from pysmg.model.linknet import Linknet
+from pysmg.model.pan import PAN
+from pysmg.model.pspnet import PSPNet
+from pysmg.model.unet import Unet
 from pysmg.model.fcn import FCN8s, FCN16s, FCN32s
 from pysmg.model.frrn import FRRN
 from pysmg.model.icnet import ICNet

@@ -1,5 +1,3 @@
-import torch.nn as nn
-
 from typing import Optional
 from .decoder import DeepLabV3Decoder, DeepLabV3PlusDecoder
 from ..base import SegmentationModel, SegmentationHead, ClassificationHead
@@ -34,7 +32,7 @@ class DeepLabV3(SegmentationModel):
     .. _DeeplabV3:
         https://arxiv.org/abs/1706.05587
     """
-        
+
     def __init__(
             self,
             encoder_name: str = "resnet34",

@@ -14,14 +14,14 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from ptsemseg.utils import make_deterministic, str2bool, preserve_memory, get_logger
-from ptsemseg.metrics import RunningScore
-from ptsemseg.model import get_model
-from ptsemseg.optimizers import get_optimizer
-from ptsemseg.schedulers import get_scheduler
-from ptsemseg.loss import get_loss_function
-from ptsemseg.metrics import AverageMeter
-from ptsemseg.dataloader import get_dataloader
+from pysmg.utils import make_deterministic, str2bool, preserve_memory, get_logger
+from pysmg.metrics import RunningScore
+from pysmg.model import get_model
+from pysmg.optimizers import get_optimizer
+from pysmg.schedulers import get_scheduler
+from pysmg.loss import get_loss_function
+from pysmg.metrics import AverageMeter
+from pysmg.dataloader import get_dataloader
 
 
 class CUDAOutOfMemory(Exception):

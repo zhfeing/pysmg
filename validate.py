@@ -5,10 +5,10 @@ import timeit
 import torch
 from torch.utils import data
 
-from ptsemseg.model import get_model
-from ptsemseg.data import get_dataset
-from ptsemseg.metrics import RunningScore
-from ptsemseg.utils import convert_state_dict
+from pysmg.model import get_model
+from pysmg.data import get_dataset
+from pysmg.metrics import RunningScore
+from pysmg.utils import convert_state_dict
 
 torch.backends.cudnn.benchmark = True
 
