@@ -9,10 +9,10 @@ from segmentation_models_pytorch.linknet import Linknet
 from segmentation_models_pytorch.pan import PAN
 from segmentation_models_pytorch.pspnet import PSPNet
 from segmentation_models_pytorch.unet import Unet
-from ptsemseg.model.fcn import FCN8s, FCN16s, FCN32s
-from ptsemseg.model.frrn import FRRN
-from ptsemseg.model.icnet import ICNet
-from ptsemseg.model.segnet import SegNet
+from pysmg.model.fcn import FCN8s, FCN16s, FCN32s
+from pysmg.model.frrn import FRRN
+from pysmg.model.icnet import ICNet
+from pysmg.model.segnet import SegNet
 
 
 def get_model(cfg, n_classes) -> Module:

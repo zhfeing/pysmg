@@ -6,8 +6,8 @@ import numpy as np
 from torch.utils import data
 from PIL import Image
 
-from ptsemseg.utils import recursive_glob
-from ptsemseg.data.transforms import default_transforms
+from pysmg.utils import recursive_glob
+from pysmg.data.transforms import default_transforms
 
 
 class MapillaryVistas(data.Dataset):

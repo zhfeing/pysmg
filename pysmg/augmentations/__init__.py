@@ -17,7 +17,7 @@ from ptsemseg.augmentations.augmentations import (
     Compose,
 )
 
-logger = logging.getLogger("ptsemseg")
+logger = logging.getLogger("pysmg")
 
 key2aug = {
     "gamma": AdjustGamma,

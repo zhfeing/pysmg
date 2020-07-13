@@ -6,8 +6,8 @@ import imageio
 import torch
 from torch.utils import data
 
-from ptsemseg.utils import recursive_glob
-from ptsemseg.data.transforms import default_transforms
+from pysmg.utils import recursive_glob
+from pysmg.data.transforms import default_transforms
 
 
 class Cityscapes(data.Dataset):

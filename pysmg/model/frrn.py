@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ptsemseg.model.utils import FRRU, RU, Conv2DBatchNormRelu, Conv2DGroupNormRelu
+from pysmg.model.utils import FRRU, RU, Conv2DBatchNormRelu, Conv2DGroupNormRelu
 
 
 __all__ = ["FRRN"]

@@ -9,7 +9,7 @@ from typing import Dict, Any
 import torch
 
 import train
-from ptsemseg.utils import str2bool, get_logger
+from pysmg.utils import str2bool, get_logger
 from multiprocess_utils import multiprocess_runner
 
 

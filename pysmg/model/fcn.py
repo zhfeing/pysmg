@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ptsemseg.model.utils import get_upsampling_weight
+from pysmg.model.utils import get_upsampling_weight
 
 
 __all__ = ["FCN32s", "FCN16s", "FCN8s"]

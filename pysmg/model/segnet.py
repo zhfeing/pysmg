@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from ptsemseg.model.utils import SegnetDown2, SegnetDown3, SegnetUp2, SegnetUp3
+from pysmg.model.utils import SegnetDown2, SegnetDown3, SegnetUp2, SegnetUp3
 
 
 __all__ = ["SegNet"]

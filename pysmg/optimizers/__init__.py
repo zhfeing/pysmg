@@ -2,7 +2,7 @@ import logging
 
 from torch.optim import SGD, Adam, ASGD, Adamax, Adadelta, Adagrad, RMSprop
 
-logger = logging.getLogger("ptsemseg")
+logger = logging.getLogger("pysmg")
 
 key2opt = {
     "sgd": SGD,

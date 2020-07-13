@@ -4,9 +4,9 @@ import yaml
 import torch
 from torch.utils.data import DataLoader
 
-from ptsemseg.data import get_dataset
-from ptsemseg.augmentations import get_composed_augmentations
-from ptsemseg.utils import make_deterministic, str2bool, preserve_memory
+from pysmg.data import get_dataset
+from pysmg.augmentations import get_composed_augmentations
+from pysmg.utils import make_deterministic, str2bool, preserve_memory
 
 
 def get_dataloader(cfg):

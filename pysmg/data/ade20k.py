@@ -6,7 +6,7 @@ from PIL import Image
 
 from torch.utils import data
 
-from ptsemseg.data.transforms import default_transforms
+from pysmg.data.transforms import default_transforms
 
 
 class ADE20K(data.Dataset):

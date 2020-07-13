@@ -3,8 +3,8 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ptsemseg import caffe_pb2
-from ptsemseg.model.utils import (
+from pysmg import caffe_pb2
+from pysmg.model.utils import (
     get_interp_size,
     CascadeFeatureFusion,
     Conv2DBatchNormRelu,

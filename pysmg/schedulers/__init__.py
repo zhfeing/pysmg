@@ -2,9 +2,9 @@ import logging
 
 from torch.optim.lr_scheduler import MultiStepLR, ExponentialLR, CosineAnnealingLR
 
-from ptsemseg.schedulers.schedulers import WarmUpLR, ConstantLR, PolynomialLR
+from pysmg.schedulers.schedulers import WarmUpLR, ConstantLR, PolynomialLR
 
-logger = logging.getLogger("ptsemseg")
+logger = logging.getLogger("pysmg")
 
 key2scheduler = {
     "constant_lr": ConstantLR,
