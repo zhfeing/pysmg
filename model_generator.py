@@ -156,6 +156,9 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
         elif isinstance(e, train.CUDAMemoryNotEnoughForModel):
             logger.error("Gpu memory is too small, skipping this config")
             cfg_failed = True
+        elif isinstance(e, train.TrainFailed):
+            logger.error("While training, found `TrainFailed` error: %s", e)
+            cfg_failed = True
         elif isinstance(e, train.CodeBugs):
             logger.error("Found code bugs, skipping this config")
             cfg_failed = True
@@ -189,9 +192,9 @@ if __name__ == "__main__":
     cfg_filepath = os.path.join(args.cfg_path, args.cfg_formatter)
 
     logger = get_logger(
-        name="Main",
+        name=None,
         level=logging.INFO,
-        logger_fp=os.path.join(args.log_dir, "train.log")
+        logger_fp=os.path.join(args.log_dir, "model_generator.log")
     )
 
     signal.signal(signal.SIGINT, kill_handler)

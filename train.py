@@ -36,6 +36,10 @@ class CUDAMemoryNotEnoughForModel(Exception):
     pass
 
 
+class TrainFailed(Exception):
+    pass
+
+
 def rm_tf_logger(writer: SummaryWriter):
     log_dir = writer.log_dir
     writer.close()
@@ -136,6 +140,9 @@ def train(
             optimizer.zero_grad()
             outputs = model(images)
             loss = loss_fn(input=outputs, target=labels)
+            # check loss legal or not
+            if torch.isnan(loss):
+                raise TrainFailed("Loss is NaN")
 
             loss.backward()
             optimizer.step()
@@ -247,7 +254,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
     logger = get_logger(
         level=logging.INFO,
         mode="a",
-        name="Train",
+        name=None,
         logger_fp=os.path.join(
             train_log_dir,
             "training-arch-{}-encoder-{}-weight-{}-data-{}.log".format(*formatter)
