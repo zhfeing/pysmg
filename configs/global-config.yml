@@ -240,6 +240,12 @@ training:
     print_interval: 50
     train_iters: 100000
     val_interval: 500
+    early_stopping:
+            max_reset_times: 3
+            patience: 5
+            mode: min
+            baseline:
+            denoise_fn: default
 
 running_args:
     batch_size: 64

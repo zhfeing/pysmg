@@ -22,6 +22,7 @@ from pysmg.schedulers import get_scheduler
 from pysmg.loss import get_loss_function
 from pysmg.metrics import AverageMeter
 from pysmg.dataloader import get_dataloader
+from pysmg.schedulers.criteria import EarlyStopping, SupportedDenoiseFn
 
 
 class CUDAOutOfMemory(Exception):
@@ -99,6 +100,17 @@ def train(
 
     scheduler = get_scheduler(optimizer, cfg["training"]["lr_schedule"])
 
+    use_early_stopping = False
+    if "early_stopping" in cfg["training"]:
+        use_early_stopping = True
+        early_stopper = EarlyStopping(
+            patience=cfg["training"]["early_stopper"]["patience"],
+            mode=cfg["training"]["early_stopper"]["mode"],
+            min_delta=["training"]["early_stopper"]["min_delta"],
+            baseline=cfg["training"]["early_stopper"]["baseline"],
+            denoise_fn=SupportedDenoiseFn[cfg["training"]["early_stopper"]["denoise_fn"]]
+        )
+
     loss_fn = get_loss_function(cfg)
     logger.info("Using loss {}".format(cfg["training"]["loss"]["name"]))
 
@@ -164,9 +176,10 @@ def train(
                 time_meter.reset()
 
             if i % cfg["training"]["val_interval"] == 1 or i == cfg["training"]["train_iters"]:
-                logger.info("start evaling")
+                logger.info("Start evaling...")
                 running_metrics_val, val_loss_meter = eval(model, val_loader, loss_fn, device)
 
+                ## write loggers
                 writer.add_scalar("loss/val_loss", val_loss_meter.avg, i)
                 logger.info("Iter %d Loss: %.4f" % (i, val_loss_meter.avg))
 
@@ -179,7 +192,7 @@ def train(
                     logger.info("{}: {}".format(k, v))
                     writer.add_scalar("val_metrics/cls_{}".format(k), v, i)
 
-                # save ckpt
+                ## save checkpoints
                 iou = score["Mean IoU : \t"]
                 state = {
                     "iter": i,
@@ -200,6 +213,7 @@ def train(
                 )
                 torch.save(state, save_path)
 
+                ## save best checkpoint
                 if iou >= best_iou:
                     best_iou = iou
                     save_path = os.path.join(
@@ -213,6 +227,20 @@ def train(
                         ),
                     )
                     torch.save(state, save_path)
+
+                # early stopping learning rate judgement
+                if use_early_stopping:
+                    early_stopper.update(val_loss_meter.avg)
+                    if early_stopper.to_stop:
+                        for i in range(len(scheduler.base_lrs)):
+                            scheduler.base_lrs[i] /= 10
+                        logger.info("Decreased lr by 10")
+                        early_stopper.reset()
+                        # stop training if reset times reaches maximum
+                        if early_stopper.reset_times >= cfg["training"]["early_stopping"]["max_reset_times"]:
+                            logger.warning("Maximum reset time reached, stop training")
+                            flag = False
+                            break
 
             if i == cfg["training"]["train_iters"]:
                 flag = False

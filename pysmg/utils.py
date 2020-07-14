@@ -288,7 +288,7 @@ def all_tensors():
 
 
 def preserve_gpu_with_id(gpu_id: int, preserve_percent: float = 0.95):
-    logger = logging.getLogger(__name__ + ".preserve_gpu_with_id")
+    logger = logging.getLogger("preserve_gpu_with_id")
     if not torch.cuda.is_available():
         logger.warning("no gpu avaliable exit...")
         return
@@ -316,7 +316,7 @@ def preserve_gpu_with_id(gpu_id: int, preserve_percent: float = 0.95):
 
 
 def preserve_memory(preserve_percent: float = 0.99):
-    logger = logging.getLogger(__name__ + ".preserve_memory")
+    logger = logging.getLogger("preserve_memory")
     if not torch.cuda.is_available():
         logger.warning("no gpu avaliable exit...")
         return
