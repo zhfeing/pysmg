@@ -241,9 +241,10 @@ training:
     train_iters: 100000
     val_interval: 500
     early_stopping:
-            max_reset_times: 3
-            patience: 5
+            max_reset_times: 4
+            patience: 10
             mode: min
+            min_delta: 1.0e-4
             baseline:
             denoise_fn: default
 

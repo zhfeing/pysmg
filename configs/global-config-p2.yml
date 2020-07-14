@@ -158,6 +158,13 @@ training:
     print_interval: 50
     train_iters: 100000
     val_interval: 500
+    early_stopping:
+        max_reset_times: 4
+        patience: 10
+        mode: min
+        min_delta: 1.0e-4
+        baseline:
+        denoise_fn: average_5
 
 running_args:
     batch_size: 64
