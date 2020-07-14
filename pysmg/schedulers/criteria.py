@@ -53,7 +53,7 @@ class EarlyStopping:
         self.reset_times = -1
         self.reset()
         self.logger.info(
-            "Early stopping with mode: %s, patience: %d, baseline: %f, denoise_fn: %s",
+            "Early stopping with mode: %s, patience: %d, baseline: %s, denoise_fn: %s",
             mode, patience, baseline, denoise_fn
         )
 

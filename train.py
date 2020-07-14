@@ -104,11 +104,11 @@ def train(
     if "early_stopping" in cfg["training"]:
         use_early_stopping = True
         early_stopper = EarlyStopping(
-            patience=cfg["training"]["early_stopper"]["patience"],
-            mode=cfg["training"]["early_stopper"]["mode"],
-            min_delta=["training"]["early_stopper"]["min_delta"],
-            baseline=cfg["training"]["early_stopper"]["baseline"],
-            denoise_fn=SupportedDenoiseFn[cfg["training"]["early_stopper"]["denoise_fn"]]
+            patience=cfg["training"]["early_stopping"]["patience"],
+            mode=cfg["training"]["early_stopping"]["mode"],
+            min_delta=cfg["training"]["early_stopping"]["min_delta"],
+            baseline=cfg["training"]["early_stopping"]["baseline"],
+            denoise_fn=SupportedDenoiseFn[cfg["training"]["early_stopping"]["denoise_fn"]]
         )
 
     loss_fn = get_loss_function(cfg)
@@ -168,7 +168,7 @@ def train(
                     i,
                     cfg["training"]["train_iters"],
                     loss.item(),
-                    scheduler.get_lr(),
+                    scheduler.get_last_lr(),
                     time_meter.avg / cfg["training"]["batch_size"]
                 )
                 logger.info(print_str)
