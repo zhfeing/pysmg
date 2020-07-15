@@ -228,18 +228,18 @@ training:
         weight_decay: 5.0e-4
         momentum: 0.99
     lr_schedule: 
-        # name: constant_lr
-        name: multi_step
-        milestones: [80000, 90000]
+        name: constant_lr
+        # name: multi_step
+        # milestones: [80000, 90000]
         # warmup_iters: 100
         # warmup_mode: linear
         # warmup_factor: 0.2
     loss:
         name: cross_entropy
     resume:
-    print_interval: 50
+    print_interval: 1
     train_iters: 100000
-    val_interval: 500
+    val_interval: 5
     early_stopping:
         max_reset_times: 4
         patience: 10

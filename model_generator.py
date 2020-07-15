@@ -69,7 +69,7 @@ def get_config_iter(global_config: Dict[str, Any]):
                 yield config_dict
 
 
-def generate_models(global_config: str, cfg_filepath: str):
+def generate_models(global_config: str, cfg_path: str, file_name_cfg: str):
     """
     Args:
         global_config: global config yaml filepath
@@ -80,10 +80,15 @@ def generate_models(global_config: str, cfg_filepath: str):
     for cfg in get_config_iter(global_config):
         cfg["training"] = global_config["training"]
         cfg["validation"] = dict()
-        train_with_cfg(cfg, global_config["running_args"], cfg_filepath)
+        train_with_cfg(cfg, global_config["running_args"], cfg_path, file_name_cfg)
 
 
-def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_filepath: str):
+def train_with_cfg(
+    train_cfg: Dict[str, Any],
+    running_cfg: Dict[str, Any],
+    cfg_path: str,
+    file_name_cfg: str
+):
     """
     Args:
         cfg_filepath: filepath to save generated yaml config, using model name, encoder name
@@ -112,7 +117,10 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
             train_cfg["model"]["encoder_weights"],
             train_cfg["data"]["dataset"]
         )
-        cfg_filepath = cfg_filepath.format(*formatter)
+        cfg_filepath = os.path.join(
+            cfg_path,
+            "config-" + file_name_cfg.format(*formatter) + ".yml"
+        )
         logger.info("Writing config file: %s", cfg_filepath)
         with open(cfg_filepath, "w") as file:
             yaml.dump(train_cfg, file, yaml.SafeDumper)
@@ -121,9 +129,10 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
         result_queue = multiprocess_runner.Queue()
         train_runner = multiprocess_runner.Runner(
             target=train.main,
-            name="train-model-{}-encoder-{}-weights-{}-dataset-{}".format(*formatter),
+            name="subprecess-" + file_name_cfg.format(*formatter),
             kwargs=dict(
                 cfg_filepath=cfg_filepath,
+                file_name_cfg=file_name_cfg,
                 logdir=args.log_dir,
                 gpu_preserve=args.gpu_preserve,
                 debug=args.debug
@@ -170,7 +179,7 @@ def train_with_cfg(train_cfg: Dict[str, Any], running_cfg: Dict[str, Any], cfg_f
             failed_list_name = os.path.join(args.log_dir, "failed_list.txt")
             mode = "a" if os.path.isfile(failed_list_name) else "w"
             with open(failed_list_name, mode) as file:
-                file.write("model-{}-encoder-{}-weights-{}-dataset-{}\n".format(*formatter))
+                file.write(file_name_cfg.format(*formatter) + "\n")
             break
 
 
@@ -181,15 +190,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--global-config", type=str)
     parser.add_argument("--cfg-path", type=str)
-    parser.add_argument("--cfg-formatter", type=str)
     parser.add_argument("--log-dir", type=str)
     parser.add_argument("--gpu-preserve", type=str2bool, default=False)
     parser.add_argument("--debug", type=str2bool, default=False)
+    parser.add_argument("--file_name_cfg", type=str)
     args = parser.parse_args()
 
     os.makedirs(args.log_dir, exist_ok=True)
     os.makedirs(args.cfg_path, exist_ok=True)
-    cfg_filepath = os.path.join(args.cfg_path, args.cfg_formatter)
 
     logger = get_logger(
         name=None,
@@ -203,5 +211,6 @@ if __name__ == "__main__":
 
     generate_models(
         global_config=args.global_config,
-        cfg_filepath=cfg_filepath
+        cfg_path=args.cfg_path,
+        file_name_cfg=args.file_name_cfg
     )

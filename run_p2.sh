@@ -5,7 +5,7 @@ export CUDA_VISIBLE_DEVICES="3"
 python model_generator.py \
     --global-config configs/global-config-p2.yml \
     --cfg-path logs/run_p2/configs \
-    --cfg-formatter arch-{}-encoder-{}-data-{}.yml \
+    --file_name_cfg arch-{}-encoder-{}-pretrain-{}-data-{}.yml \
     --log-dir logs/run_p2/ \
     --gpu-preserve True \
     --debug False

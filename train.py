@@ -87,7 +87,8 @@ def train(
     logger: logging.Logger,
     writer: torch.utils.tensorboard.SummaryWriter,
     device: torch.device,
-    logdir: str
+    logdir: str,
+    file_name_cfg: str
 ):
     model = torch.nn.DataParallel(model)
     # Setup optimizer, lr_scheduler and loss function
@@ -136,14 +137,14 @@ def train(
     time_meter = AverageMeter()
 
     best_iou = -100.0
-    i = start_iter
+    it = start_iter
     flag = True
 
     # start training
     logger.info("start training")
-    while i <= cfg["training"]["train_iters"] and flag:
+    while it <= cfg["training"]["train_iters"] and flag:
         for (images, labels) in train_loader:
-            i += 1
+            it += 1
             start_ts = time.time()
             model.train()
             images = images.to(device)
@@ -162,40 +163,40 @@ def train(
 
             time_meter.update(time.time() - start_ts)
 
-            if i % cfg["training"]["print_interval"] == 1:
+            if (it - 1) % cfg["training"]["print_interval"] == 0:
                 fmt_str = "Iter [{:d}/{:d}]  Loss: {:.4f} Lr: {} Time/Image: {:.4f}"
                 print_str = fmt_str.format(
-                    i,
+                    it,
                     cfg["training"]["train_iters"],
                     loss.item(),
                     scheduler.get_last_lr(),
                     time_meter.avg / cfg["training"]["batch_size"]
                 )
                 logger.info(print_str)
-                writer.add_scalar("loss/train_loss", loss.item(), i)
+                writer.add_scalar("loss/train_loss", loss.item(), it)
                 time_meter.reset()
 
-            if i % cfg["training"]["val_interval"] == 1 or i == cfg["training"]["train_iters"]:
+            if (it - 1) % cfg["training"]["val_interval"] == 0 or it == cfg["training"]["train_iters"]:
                 logger.info("Start evaling...")
                 running_metrics_val, val_loss_meter = eval(model, val_loader, loss_fn, device)
 
                 ## write loggers
-                writer.add_scalar("loss/val_loss", val_loss_meter.avg, i)
-                logger.info("Iter %d Loss: %.4f" % (i, val_loss_meter.avg))
+                writer.add_scalar("loss/val_loss", val_loss_meter.avg, it)
+                logger.info("Iter %d Loss: %.4f" % (it, val_loss_meter.avg))
 
                 score, class_iou = running_metrics_val.get_scores()
                 for k, v in score.items():
                     logger.info("{}: {}".format(k, v))
-                    writer.add_scalar("val_metrics/{}".format(k), v, i)
+                    writer.add_scalar("val_metrics/{}".format(k), v, it)
 
                 for k, v in class_iou.items():
                     logger.info("{}: {}".format(k, v))
-                    writer.add_scalar("val_metrics/cls_{}".format(k), v, i)
+                    writer.add_scalar("val_metrics/cls_{}".format(k), v, it)
 
                 ## save checkpoints
                 iou = score["Mean IoU : \t"]
                 state = {
-                    "iter": i,
+                    "iter": it,
                     "model_state": model.state_dict(),
                     "optimizer_state": optimizer.state_dict(),
                     "scheduler_state": scheduler.state_dict(),
@@ -203,37 +204,26 @@ def train(
                 }
                 save_path = os.path.join(
                     ckpt_dir,
-                    "arch-{}-encoder-{}-weight-{}-dataset-{}-iter-{}.pkl".format(
+                    file_name_cfg.format(
                         cfg["model"]["arch"],
                         cfg["model"]["encoder_name"],
                         cfg["model"]["encoder_weights"],
-                        cfg["data"]["dataset"],
-                        i
-                    ),
+                        cfg["data"]["dataset"]
+                    )
                 )
-                torch.save(state, save_path)
+                os.makedirs(save_path, exist_ok=True)
+                torch.save(state, os.path.join(save_path, "iter-{}.pth".format(it)))
 
                 ## save best checkpoint
                 if iou >= best_iou:
                     best_iou = iou
-                    save_path = os.path.join(
-                        logdir,
-                        "ckpt",
-                        "arch-{}-encoder-{}-weight-{}-dataset-{}-best.pkl".format(
-                            cfg["model"]["arch"],
-                            cfg["model"]["encoder_name"],
-                            cfg["model"]["encoder_weights"],
-                            cfg["data"]["dataset"]
-                        ),
-                    )
-                    torch.save(state, save_path)
+                    torch.save(state, os.path.join(save_path, "best.pth"))
 
                 # early stopping learning rate judgement
                 if use_early_stopping:
                     early_stopper.update(val_loss_meter.avg)
                     if early_stopper.to_stop:
-                        for i in range(len(scheduler.base_lrs)):
-                            scheduler.base_lrs[i] /= 10
+                        scheduler.base_lrs = list(map(lambda x: x / 10, scheduler.base_lrs))
                         logger.info("Decreased lr by 10")
                         early_stopper.reset()
                         # stop training if reset times reaches maximum
@@ -242,13 +232,19 @@ def train(
                             flag = False
                             break
 
-            if i == cfg["training"]["train_iters"]:
+            if it == cfg["training"]["train_iters"]:
                 flag = False
                 break
     return best_iou
 
 
-def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
+def main(
+    cfg_filepath: str,
+    file_name_cfg: str,
+    logdir: str,
+    gpu_preserve: bool = False,
+    debug: bool = False
+):
     with open(cfg_filepath) as fp:
         cfg = yaml.load(fp, Loader=yaml.SafeLoader)
 
@@ -272,7 +268,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
         log_dir=os.path.join(
             logdir,
             "tf-board-logs",
-            "arch-{}-encoder-{}-weight-{}-data-{}".format(*formatter)
+            file_name_cfg.format(*formatter)
         ),
         flush_secs=1
     )
@@ -285,7 +281,7 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
         name=None,
         logger_fp=os.path.join(
             train_log_dir,
-            "training-arch-{}-encoder-{}-weight-{}-data-{}.log".format(*formatter)
+            "training-" + file_name_cfg.format(*formatter) + ".log"
         )
     )
     logger.info("Start running with config: \n{}".format(yaml.dump(cfg)))
@@ -336,7 +332,8 @@ def main(cfg_filepath, logdir, gpu_preserve: bool = False, debug: bool = False):
             logger=logger,
             writer=writer,
             device=device,
-            logdir=logdir
+            logdir=logdir,
+            file_name_cfg=file_name_cfg
         )
         success = True
         return dict(best_iou=best_iou)
