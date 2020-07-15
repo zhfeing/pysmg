@@ -150,9 +150,9 @@ training:
     loss:
         name: cross_entropy
     resume:
-    print_interval: 50
+    print_interval: 10
     train_iters: 100000
-    val_interval: 500
+    val_interval: 200
     early_stopping:
         max_reset_times: 4
         patience: 5

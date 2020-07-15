@@ -150,7 +150,7 @@ training:
     loss:
         name: cross_entropy
     resume:
-    print_interval: 50
+    print_interval: 10
     train_iters: 100000
     val_interval: 500
     early_stopping:
@@ -159,7 +159,7 @@ training:
             mode: min
             min_delta: 1.0e-4
             baseline:
-            denoise_fn: default
+            denoise_fn: average_5
 
 running_args:
     batch_size: 64
