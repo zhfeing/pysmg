@@ -54,27 +54,34 @@ def export_models(global_config: str, log_dir: str, file_name_cfg: str):
                 model = get_model(cfg, n_classes)
                 model.load_state_dict(model_state)
 
-                # kamal.hub.save( model=model,
-                # save_path='../DeepLabV3Plus-Pytorch',
-                # entry_name=name, 
-                # spec_name='%s_segmentation'%('voc2012aug'),
-                # code_path='.',
-                # metadata=kamal.hub.meta.Metadata(
-                #     name=name, dataset='voc2012aug', task=kamal.hub.meta.TASK.SEGMENTATION,
-                #     url='https://github.com/VainF/DeepLabV3Plus-Pytorch', 
-                #     input=kamal.hub.meta.ImageInput(
-                #         size=None,
-                #         range=[0, 1],
-                #         space='rgb',
-                #         normalize=dict( mean = [0.485, 0.456, 0.406],
-                #                         std = [0.229, 0.224, 0.225] ),
-                #     ),
-                #     other_metadata=dict(
-                #         num_classes=21, 
-                #     ),
-                #     entry_args=dict( num_classes=21, output_stride=16, pretrained_backbone=False )
-                # ))
-    
+                # kamal.hub.save(
+                #     model=model,
+                #     save_path='../DeepLabV3Plus-Pytorch',
+                #     entry_name=name, 
+                #     spec_name='%s_segmentation'%('voc2012aug'),
+                #     code_path='.',
+                #     metadata=kamal.hub.meta.Metadata(
+                #         name=name, dataset='voc2012aug', task=kamal.hub.meta.TASK.SEGMENTATION,
+                #         url='https://github.com/VainF/DeepLabV3Plus-Pytorch', 
+                #         input=kamal.hub.meta.ImageInput(
+                #             size=None,
+                #             range=[0, 1],
+                #             space='rgb',
+                #             normalize=dict(
+                #                 mean=cfg["data"]["normalize_mean"],
+                #                 std=cfg["data"]["normalize_std"]
+                #             ),
+                #         ),
+                #         other_metadata=dict(
+                #             num_classes=n_classes
+                #         ),
+                #         entry_args=dict(
+                #             num_classes=n_classes,
+                #             output_stride=16,
+                #             pretrained_backbone=False
+                #         )
+                #     )
+                # )
 
 
 if __name__ == "__main__":
@@ -82,7 +89,6 @@ if __name__ == "__main__":
     parser.add_argument("--global-config", type=str)
     parser.add_argument("--log-dir", type=str)
     parser.add_argument("--file-name-cfg", type=str)
-    parser.add_argument("--input-shape", type=int, nargs="+")
     args = parser.parse_args()
 
     print("starting to export models")
