@@ -23,6 +23,19 @@
 9. ICNet
 10. SegNet
 
+## Supported Encoders
+1. resnet
+2. dpn
+3. vgg
+4. senet
+5. densenet
+6. inceptionresnetv2
+7. inceptionv4
+8. efficient_net
+9. mobilenet
+10. xception
+11. timm_efficientnet
+
 ## Model Generator
 
 `Module Generator` train models with different encoders, methods, and datasets automatically.
